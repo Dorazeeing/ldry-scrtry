@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "ldry-scrtry",
+  "version": "0.1.0",
+  "description": "정부24에서 다음에 누를 곳을 큰 테두리로 알려 주는 비공식 길잡이입니다. 정부24·행정안전부와 관계없습니다.",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.typesafe.ai/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.gov.kr/*",
+        "https://plus.gov.kr/*"
+      ],
+      "js": [
+        "src/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "ldry-scrtry 설정",
+    "default_popup": "src/popup.html"
+  }
+}

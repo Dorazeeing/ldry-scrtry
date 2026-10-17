@@ -1,0 +1,18 @@
+{
+  "name": "ldry-scrtry",
+  "version": "0.1.0",
+  "private": true,
+  "description": "정부24 이용을 돕는 비공식 길잡이 (크롬 확장)",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server/relay.js",
+    "test": "node --test test/*.test.js",
+    "check": "node scripts/check.mjs && node --test test/*.test.js",
+    "smoke": "node scripts/smoke.mjs",
+    "trial": "node scripts/trial.mjs",
+    "package": "rm -f ldry-scrtry.zip && zip -r -q ldry-scrtry.zip manifest.json src"
+  }
+}

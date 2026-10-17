@@ -1,0 +1,174 @@
+openapi: 3.1.0
+info:
+  title: ldry-scrtry 중계 (Jev 판단 전용)
+  version: 0.1.0
+  description: |
+    크롬 확장 ldry-scrtry(정부24 길잡이, 비공식)가 TypeSafe Jev를 부르기 위한 **전용** 중계.
+    - Jev에 보낼 질문과 목표 문장은 서버가 만든다. 확장은 `goalId`(목록 id)와 걸러진 화면 정보만 보낸다 → 범용 Jev 중계로 쓸 수 없다 (TypeSafe MCA §2.3(a)).
+    - TypeSafe 키는 서버 환경변수에만 있다. 응답·로그에 키와 요청 본문을 남기지 않는다.
+    - CORS 헤더를 주지 않는다. 확장의 service worker(`host_permissions`)만 응답을 읽을 수 있다.
+    - 오류는 `{ "error": { "code", "message" } }`, message는 쉬운 한국어.
+    구현: `server/relay.js`, 판단 흐름: `src/lib/guide.js` (확장과 같은 코드).
+servers:
+  - url: https://{relay}
+    variables:
+      relay:
+        default: example.up.railway.app
+        description: Railway가 만든 주소 (Settings → Networking → Generate Domain)
+paths:
+  /health:
+    get:
+      summary: 살아 있는지 확인
+      responses:
+        '200':
+          description: 동작 중
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, enabled]
+                properties:
+                  ok: { type: boolean, const: true }
+                  enabled: { type: boolean, description: 'RELAY_ENABLED=false면 false (판단 요청은 503)' }
+  /v1/guide/next:
+    post:
+      summary: 다음에 누를 곳 판단
+      description: 확장이 모은 화면 후보 중 하나를 Jev가 고르고, 서버 정책(확률 0.35 이상)으로 가리킬지 정한다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GuideRequest' }
+      responses:
+        '200':
+          description: 판단 결과
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GuideResult' }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '413': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+        '502': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+        '504': { $ref: '#/components/responses/Error' }
+  /v1/catalog/search:
+    post:
+      summary: 어르신이 적은 말 → 민원 목록 후보
+      description: 적은 말은 목록에서 찾는 데만 쓴다. Jev가 실패하면 글자 맞추기로 찾는다 (source=local).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              additionalProperties: false
+              properties:
+                query: { type: string, maxLength: 200, description: '이름·번호처럼 보이면 400 personal' }
+      responses:
+        '200':
+          description: 목록 후보
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SearchResult' }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '413': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+components:
+  responses:
+    Error:
+      description: 오류
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - bad_json          # 400 본문이 JSON이 아님
+                - bad_request       # 400 필수 값 없음·모양이 틀림
+                - unknown_goal      # 400 goalId가 목록에 없음
+                - empty             # 400 검색어 없음
+                - personal          # 400 검색어가 개인정보처럼 보임
+                - forbidden_origin  # 403 확장이 아닌 곳에서 옴 (ALLOWED_ORIGIN)
+                - forbidden_site    # 403 page.path가 길잡이 사이트(정부24)가 아님
+                - too_large         # 413 본문 64KB 초과
+                - not_found         # 404
+                - method_not_allowed # 405
+                - rate_limited      # 429 IP별 분당 한도 (Retry-After 헤더)
+                - disabled          # 503 RELAY_ENABLED=false
+                - daily_cap         # 503 하루 호출 상한 도달
+                - busy              # 503 TypeSafe가 바쁨 (429·529 재시도 후)
+                - upstream_config   # 502 서버 쪽 키·크레딧 문제
+                - upstream_error    # 502 TypeSafe 오류·연결 실패
+                - timeout           # 504 TypeSafe 응답 시간 초과
+            message: { type: string, description: 어르신이 읽을 수 있는 쉬운 한국어 }
+    GuideRequest:
+      type: object
+      required: [goalId, page, candidates]
+      properties:
+        goalId: { type: string, description: 'src/lib/catalog.js의 id (예: resident_abstract)' }
+        page:
+          type: object
+          required: [path]
+          properties:
+            path: { type: string, maxLength: 200, description: '호스트+경로만 (예: www.gov.kr/mw/AA020InfoCappView.do). 쿼리·세션 값 없음' }
+            title: { type: string }
+            headings: { type: array, items: { type: string } }
+            popupText: { type: string }
+        candidates:
+          type: array
+          maxItems: 400
+          items:
+            type: object
+            required: [id, label, kind]
+            properties:
+              id: { type: integer }
+              label: { type: string }
+              detail: { type: string }
+              kind: { type: string, enum: [button, link, option, input, select] }
+              area: { type: string, enum: [popup, main, menu] }
+              selected: { type: boolean }
+              filled: { type: boolean, description: '입력 칸은 값이 아니라 채워졌는지만' }
+        pressed: { type: array, items: { type: string }, description: '앞서 누른 후보 이름 (최근 8개만 씀)' }
+    GuideResult:
+      type: object
+      required: [kind]
+      properties:
+        kind: { type: string, enum: [point, unsure] }
+        id: { type: integer, description: 'kind=point일 때 가리킬 후보 id' }
+        label: { type: string }
+        targetKind: { type: string, enum: [button, link, option, input, select] }
+        reason: { type: string, enum: [none, low_probability, unknown_option, no_candidates] }
+        stage: { type: [string, 'null'] }
+        stageText: { type: string }
+    SearchResult:
+      type: object
+      required: [kind, items, source, missing, query]
+      properties:
+        kind: { type: string, const: results }
+        items:
+          type: array
+          maxItems: 4
+          items:
+            type: object
+            required: [id, name, plain]
+            properties:
+              id: { type: string }
+              name: { type: string }
+              plain: { type: string }
+              offsiteName: { type: string, description: '길잡이가 안 뜨는 기관 사이트로 넘어가는 서류면 그 사이트 이름' }
+        source: { type: string, enum: [jev, local, none] }
+        missing: { type: boolean, description: '서류 이름을 적었는데 목록에 없음' }
+        query: { type: string }

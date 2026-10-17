@@ -1,0 +1,32 @@
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  width: 460px;
+  padding: 20px;
+  font: 400 20px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  color: #111111;
+  background: #ffffff;
+  word-break: keep-all;
+}
+h1 { font-size: 24px; margin: 0; color: #1d3faf; }
+h2 { font-size: 20px; margin: 0 0 8px; }
+p { margin: 0 0 8px; }
+.who, .hint { color: #333333; font-size: 18px; }
+section { border-top: 2px solid #c4cad4; padding-top: 16px; margin-top: 16px; }
+label { display: block; font-weight: 700; margin-bottom: 6px; }
+input {
+  width: 100%; min-height: 56px; padding: 0 14px; font: inherit;
+  border: 2px solid #5a6270; border-radius: 10px;
+}
+.row { display: flex; gap: 16px; margin: 16px 0 8px; }
+.row button { flex: 1 1 0; }
+button {
+  min-height: 56px; padding: 8px 16px; font: inherit; font-weight: 700; cursor: pointer;
+  border: 3px solid #1d3faf; border-radius: 12px; background: #ffffff; color: #1d3faf;
+}
+button.primary { background: #1d3faf; color: #ffffff; }
+button:focus-visible, input:focus-visible { outline: 4px solid #111111; outline-offset: 2px; }
+.ok { color: #155c31; font-weight: 700; }
+.bad { color: #b00000; font-weight: 700; }
+.log { margin: 0 0 12px; padding-left: 24px; font-size: 18px; max-height: 220px; overflow: auto; }
+.log li { margin-bottom: 6px; }

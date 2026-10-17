@@ -1,0 +1,1284 @@
+[
+ {
+  "name": "메인",
+  "source": "2026-10-17 smoke 수집 (plus.gov.kr/, 차단 화면 전)",
+  "expected": [
+   "주민등록등본(초본)"
+  ],
+  "expectedStage": "민원 찾기",
+  "page": {
+   "title": "메인 | 정부24",
+   "path": "plus.gov.kr/",
+   "headings": [
+    "정부24"
+   ]
+  },
+  "pressed": [],
+  "candidates": [
+   {
+    "label": "110",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "안녕하세요. 무엇을 알고 싶으세요?",
+    "kind": "input",
+    "area": "main"
+   },
+   {
+    "label": "검색하기",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "자주 찾는 서비스 이전 목록",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "자주 찾는 서비스 다음 목록",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "자주 찾는 서비스",
+    "kind": "button",
+    "area": "main",
+    "detail": "펼쳐보기"
+   },
+   {
+    "label": "토지(임야)대장",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "주민등록등본(초본)",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "자동차등록원부",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "건축물대장",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "가족관계증명서",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "여권 재발급",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "지방세 납세증명",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "납세증명",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "인감증명서",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "지적도(임야도)",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "소득금액 증명",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "건강보험 자격득실 확인",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "농업경영체 등록 확인서 교부",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "운전경력 증명",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "사업자등록 증명",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "대학교 졸업(예정) 증명",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "병적증명",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "생활·가족가이드",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "이전",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "다음",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "가족교육",
+    "kind": "button",
+    "area": "main",
+    "detail": "선택됨"
+   },
+   {
+    "label": "보건•복지",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "이사",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "결혼",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "임신•출산",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "육아",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "사망",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "가족관계교육이 궁금하거나 가족센터서비스를 이용하고 싶을 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "임신·출산·육아에 대한 믿을 수 있는 정보가 필요할 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "영유아 자녀를 양육하고 있을 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "부모로서 한 단계 성장하고 싶을 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "청소년 자녀와의 관계가 어려울 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "부모와 자녀 모두 행복해지는 긍정양육 교육이 필요할 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "청년이 결혼·출산·양육을 준비하고 미래 역량을 키우고 싶을 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "치매가 의심될 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "돌봄이 필요할 때(노인)",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "암 진단을 받았을 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "이사를 할 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "셀프등기를 하려고 할 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "누군가와 결혼할 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "외국인과 결혼할 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "아이를 갖고자 할 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "임신에 어려움을 겪을 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "아이가 태어났을 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "아이를 양육할 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "아이를 어린이집에 보내려고 할 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "육아휴직을 하려고 할 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "누군가가 돌아가셨을 때(유족이 있는 경우)",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "상속을 할 때",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "원스톱 서비스",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "전체",
+    "kind": "button",
+    "area": "main",
+    "detail": "선택됨"
+   },
+   {
+    "label": "생활·가족",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "출산·육아",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "복지·금융",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "교육·취업·기업",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "전입신고+",
+    "kind": "link",
+    "area": "main",
+    "detail": "한번에 여러 감면 신청"
+   },
+   {
+    "label": "행복출산",
+    "kind": "link",
+    "area": "main",
+    "detail": "출산 후 다양한 혜택"
+   },
+   {
+    "label": "맘편한 임신",
+    "kind": "link",
+    "area": "main",
+    "detail": "임신부터 출산까지"
+   },
+   {
+    "label": "내 차 관리",
+    "kind": "link",
+    "area": "main",
+    "detail": "자동차 관련 행정 지원"
+   },
+   {
+    "label": "가족·다문화지원",
+    "kind": "link",
+    "area": "main",
+    "detail": "다양한 가족의 행정 지원"
+   },
+   {
+    "label": "온종일 돌봄",
+    "kind": "link",
+    "area": "main",
+    "detail": "다양한 가정의 아동 돌봄 지원"
+   },
+   {
+    "label": "노후생활",
+    "kind": "link",
+    "area": "main",
+    "detail": "연금, 복지, 생활 지원"
+   },
+   {
+    "label": "장애인지원",
+    "kind": "link",
+    "area": "main",
+    "detail": "생활 및 경제적 지원"
+   },
+   {
+    "label": "안심상속",
+    "kind": "link",
+    "area": "main",
+    "detail": "상속 등 행정 절차 간소화"
+   },
+   {
+    "label": "서민금융",
+    "kind": "link",
+    "area": "main",
+    "detail": "저소득층을 위한 금융 지원"
+   },
+   {
+    "label": "꿈청소년",
+    "kind": "link",
+    "area": "main",
+    "detail": "청소년 교육 및 복지 지원"
+   },
+   {
+    "label": "취업서류(공직자)",
+    "kind": "link",
+    "area": "main",
+    "detail": "공무원 취업 필요서류 지원"
+   },
+   {
+    "label": "기업생애주기서비스",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "국가유공자 예우",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "혜택알리미",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "급한 생활비, 대출 연체, 신용 하락, 당장의 부담을 덜 수 있는 정부…",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "창업을 준비 중이라면, 정부의 초기 자금 및 공간 지원 모음",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "혼자 살아도 든든하게, 1인 청년을 위한 생활지원 모음",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "양육 부담을 줄일 수 있도록, 정부의 돌봄·보육 지원 정보 한눈에",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "회원가입",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "로그인",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "비회원 로그인(개인) 사용자정보 직접 입력 서비스 중단 안내",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "피싱 문자 및 공공기관 위장 사이트, 웹 주의 안내",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "매크로 및 유사 프로그램 사용자 이용 제한 안내",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "[국토교통부] 광주센터 클라우드 S존 Unix SAN 스토리지 전환 작…",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "간편인증(하나인증서, NICE, 카카오뱅크) 시스템 작업 안내",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "공지사항",
+    "kind": "link",
+    "area": "main",
+    "detail": "더 보기"
+   },
+   {
+    "label": "일시정지",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "새 창 열림",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "위로 이동",
+    "kind": "link",
+    "area": "main",
+    "detail": "Top"
+   },
+   {
+    "label": "정부24",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "For Foreigners",
+    "kind": "button",
+    "area": "menu",
+    "detail": "목록 펼치기"
+   },
+   {
+    "label": "어린이",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "시니어",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "지원",
+    "kind": "button",
+    "area": "menu",
+    "detail": "목록 펼치기"
+   },
+   {
+    "label": "화면크기",
+    "kind": "button",
+    "area": "menu",
+    "detail": "제어 목록 펼치기"
+   },
+   {
+    "label": "AI국민비서",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "통합검색",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "민원서비스",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "생활",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "정책정보",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "고객센터",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "국민소통채널",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "디지털증명",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "부가서비스",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "정부24 안내열기",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "인스타그램",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "엑스",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "카카오스토리",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "블로그",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "개인정보처리방침",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "이용약관",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "보안센터",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "웹 접근성 품질인증 마크 획득",
+    "kind": "link",
+    "area": "menu"
+   }
+  ]
+ },
+ {
+  "name": "민원안내",
+  "source": "2026-10-17 smoke 수집 (www.gov.kr 등본(초본) 안내)",
+  "expected": [
+   "발급하기"
+  ],
+  "expectedStage": "민원 안내",
+  "page": {
+   "title": "주민등록표 등본(초본) 발급 | 민원안내 및 신청 | 정부24",
+   "path": "www.gov.kr/mw/AA020InfoCappView.do",
+   "headings": [
+    "정부24",
+    "주민등록표 등본(초본) 발급",
+    "서비스 개요",
+    "기본정보",
+    "신청 방법 및 절차"
+   ]
+  },
+  "pressed": [],
+  "candidates": [
+   {
+    "label": "110",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "Home",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "민원서비스",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "주민등록법 시행규칙: 별지 서식 18, 19호",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "처리기간 계산 방법",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "주민등록법 시행규칙: 별지 서식 7, 7호의2, 9호",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "신청작성예시",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "하단 참조",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "시군구 및 읍면동 출장소",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "다운로드",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "주민등록법 (제29조)",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "주민등록법 시행령 (제47조)",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "주민등록법 시행규칙 (제13조 ,제15조)",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "행정안전부",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "주민등록표등(초)본은 무료인가요?",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "주민등록표등본 발급물을 팩스나 파일로 받을 수 있나요?",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "네",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "아니오",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "(5점) 서비스 이용에 문제가 없음",
+    "kind": "option",
+    "area": "main"
+   },
+   {
+    "label": "(4점) 모든 내용을 이해하기가 쉬움",
+    "kind": "option",
+    "area": "main"
+   },
+   {
+    "label": "(3점) 화면이 간편하게 구성되어 있음",
+    "kind": "option",
+    "area": "main"
+   },
+   {
+    "label": "이 페이지 이용 중 불편사항이나 기능오류 등 개선이 필요한 부분에 대한…",
+    "kind": "input",
+    "area": "main"
+   },
+   {
+    "label": "평가완료",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "국민 신문고",
+    "kind": "link",
+    "area": "main",
+    "detail": "법령, 제도, 절차 등 행정업무에 관한 질의 또는 설명이나 해석의 요구는 국민신문고를 이용해 주세요."
+   },
+   {
+    "label": "발급하기",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "정부24",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "For Foreigners",
+    "kind": "button",
+    "area": "menu",
+    "detail": "목록 �쇱튂湲�"
+   },
+   {
+    "label": "어린이",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "시니어",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "지원",
+    "kind": "button",
+    "area": "menu",
+    "detail": "목록 �쇱튂湲�"
+   },
+   {
+    "label": "화면크기",
+    "kind": "button",
+    "area": "menu",
+    "detail": "제어 목록 �쇱튂湲�"
+   },
+   {
+    "label": "AI국민비서",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "통합검색",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "로그인",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "회원가입",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "혜택알리미",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "생활",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "정책정보",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "고객센터",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "서비스 개요",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "기본정보",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "신청 방법 및 절차",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "제출 서류",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "부가정보",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "정보 변경내역",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "국민소통채널",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "디지털증명",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "부가서비스",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "정부24 안내열기",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "인스타그램",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "엑스",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "카카오스토리",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "네이버블로그",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "개인정보처리방침",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "이용약관",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "보안센터",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "웹 접근성 품질인증 마크 획득",
+    "kind": "link",
+    "area": "menu"
+   }
+  ]
+ },
+ {
+  "name": "회원·비회원 창",
+  "source": "2026-10-17 smoke 수집 (발급하기를 누른 뒤 뜬 창, 창 안 후보만 + 창 안내 글)",
+  "expected": [
+   "회원 신청하기",
+   "비회원 신청하기"
+  ],
+  "expectedStage": "민원 안내",
+  "page": {
+   "title": "주민등록표 등본(초본) 발급 | 민원안내 및 신청 | 정부24",
+   "path": "www.gov.kr/mw/AA020InfoCappView.do",
+   "headings": [
+    "정부24",
+    "확인하세요!",
+    "주민등록표 등본(초본) 발급",
+    "서비스 개요",
+    "기본정보"
+   ],
+   "popupText": "확인하세요! 회원/비회원 신청가능 서비스입니다. 비회원으로 신청하시더라도, 일부 서비스는 간편인증 또는 인증서(공동, 금융)가 별도로 필요합니다."
+  },
+  "pressed": [
+   "발급하기"
+  ],
+  "candidates": [
+   {
+    "label": "회원 신청하기",
+    "kind": "link",
+    "area": "popup"
+   },
+   {
+    "label": "비회원 신청하기",
+    "kind": "link",
+    "area": "popup"
+   },
+   {
+    "label": "공동인증서 등록 레이어 닫기",
+    "kind": "button",
+    "area": "popup"
+   }
+  ]
+ },
+ {
+  "name": "로그인",
+  "source": "2026-10-17 curl로 받은 plus.gov.kr/login HTML의 버튼 이름으로 재구성 (자동화 브라우저 차단)",
+  "expected": [
+   "간편인증"
+  ],
+  "expectedStage": "로그인",
+  "page": {
+   "title": "로그인 | 정부24",
+   "path": "plus.gov.kr/login/",
+   "headings": [
+    "로그인"
+   ]
+  },
+  "pressed": [
+   "발급하기",
+   "회원 신청하기"
+  ],
+  "candidates": [
+   {
+    "label": "개인",
+    "kind": "button",
+    "area": "main",
+    "detail": "선택됨"
+   },
+   {
+    "label": "법인",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "QR코드 로그인",
+    "kind": "link",
+    "area": "main",
+    "detail": "미리 등록한 생체 정보 이용"
+   },
+   {
+    "label": "간편인증",
+    "kind": "button",
+    "area": "main",
+    "detail": "네이버, 카카오, 금융기관 등의 전자서명으로 로그인"
+   },
+   {
+    "label": "공동인증서",
+    "kind": "button",
+    "area": "main",
+    "detail": "개인 컴퓨터, USB 등에 보관되어 있는 인증서로 로그인"
+   },
+   {
+    "label": "금융인증서",
+    "kind": "button",
+    "area": "main",
+    "detail": "은행 앱 또는 인터넷뱅킹 사이트에서 발급한 금융결제원 인증서로 로그인"
+   },
+   {
+    "label": "모바일 신분증",
+    "kind": "button",
+    "area": "main",
+    "detail": "스마트폰의 모바일 신분증으로 로그인"
+   },
+   {
+    "label": "아이디 로그인",
+    "kind": "link",
+    "area": "main",
+    "detail": "정부24 회원 가입 시 등록한 아이디를 이용하여 로그인"
+   },
+   {
+    "label": "비회원 로그인(개인)",
+    "kind": "link",
+    "area": "main",
+    "detail": "회원가입 없이 성명, 주민등록번호로 로그인"
+   },
+   {
+    "label": "비회원 로그인(법인)",
+    "kind": "link",
+    "area": "main",
+    "detail": "회원가입 없이 법인등록번호 및 사업자번호로 로그인"
+   },
+   {
+    "label": "110",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "정부24",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "For Foreigners",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "어린이",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "시니어",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "지원",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "화면크기",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "통합검색",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "로그인",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "회원가입",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "민원서비스",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "혜택알리미",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "생활",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "정책정보",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "고객센터",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "국민소통채널",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "디지털증명",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "부가서비스",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "정부24 안내열기",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "인스타그램",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "엑스",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "카카오스토리",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "블로그",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "개인정보처리방침",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "이용약관",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "보안센터",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "웹 접근성 품질인증 마크 획득",
+    "kind": "link",
+    "area": "menu"
+   }
+  ]
+ },
+ {
+  "name": "전자가족관계 본인확인",
+  "source": "2026-10-17 사용자 스크린샷에서 재구성 (efamily.scourt.go.kr robots.txt가 이 페이지 수집을 막아 받지 않음). 칸 값은 넣지 않고 채워졌는지만",
+  "goalId": "marriage_cert",
+  "site": "대법원 전자가족관계등록시스템",
+  "expected": [
+   "간편인증"
+  ],
+  "expectedStage": "로그인",
+  "page": {
+   "title": "가족관계등록부 신청인 정보 조회",
+   "path": "efamily.scourt.go.kr/pt/PtFrrpApplrInfoInqW.do",
+   "headings": [
+    "신청인 정보 조회"
+   ]
+  },
+  "pressed": [
+   "혼인관계증명서",
+   "발급하기"
+  ],
+  "candidates": [
+   {
+    "label": "위 이용약관에 동의합니다.",
+    "kind": "option",
+    "area": "main",
+    "selected": true
+   },
+   {
+    "label": "키보드보안프로그램적용",
+    "kind": "option",
+    "area": "main"
+   },
+   {
+    "label": "성명",
+    "kind": "input",
+    "area": "main",
+    "filled": true
+   },
+   {
+    "label": "주민등록번호",
+    "kind": "input",
+    "area": "main",
+    "filled": true
+   },
+   {
+    "label": "외국인식별번호",
+    "kind": "input",
+    "area": "main"
+   },
+   {
+    "label": "부가정보확인",
+    "kind": "select",
+    "area": "main",
+    "filled": true
+   },
+   {
+    "label": "공동인증서",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "금융인증서",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "간편인증",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "증명서 진위확인",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "이용약관",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "개인정보처리방침",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "저작권보호정책",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "링크시유의사항",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "원격지원",
+    "kind": "link",
+    "area": "menu"
+   }
+  ]
+ }
+]

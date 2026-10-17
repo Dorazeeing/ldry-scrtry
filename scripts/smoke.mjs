@@ -1,0 +1,283 @@
+// 연기 시험: 실제 정부24 공개 페이지에서 확장을 띄워 "후보 수집 → 질문 → 테두리"가 이어지는지 본다.
+// TypeSafe는 가짜 응답으로 바꾼다 (키·비용 없음). 정확도 시험은 scripts/trial.mjs.
+// Playwright는 새로 설치하지 않고 ../slop-detector/node_modules 것을 빌려 쓴다 (PLAYWRIGHT_FROM으로 바꿀 수 있음).
+// 결과: smoke-out/ 에 단계별 화면 사진, 보낸 요청(fixture), 요약 summary.json
+
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { homedir, tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { NONE_OPTION, looksPersonal } from '../src/lib/sanitize.js';
+
+process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = '1'; // service worker의 fetch도 가로채기
+const root = new URL('..', import.meta.url).pathname;
+const { chromium } = createRequire(process.env.PLAYWRIGHT_FROM ?? join(root, '../slop-detector/package.json'))('playwright');
+const OUT = join(root, 'smoke-out');
+mkdirSync(OUT, { recursive: true });
+
+// 가짜 Jev: 아는 이름이 후보에 있으면 고르고, 없으면 "해당 없음"
+const PICK_ORDER = ['회원 신청하기', '간편인증', '주민등록등본(초본)', '주민등록표 등본(초본)', '발급하기', '다음'];
+function mockAnswer(body) {
+  if (body.questions.ping) return { model: 'mock', answers: { ping: { type: 'noul', noul: 0.99 } }, usage: {} };
+  if (body.questions.service) {
+    // 민원 찾기: "주소"·"이사"가 들어가면 초본 1순위, 등본 2순위
+    const hit = /주소|이사/.test(body.state.request);
+    const probabilities = hit ? { '주민등록표 초본': 0.62, '주민등록표 등본': 0.28, [NONE_OPTION]: 0.1 } : { [NONE_OPTION]: 1 };
+    const choice = hit ? '주민등록표 초본' : NONE_OPTION;
+    return { model: 'mock', answers: { service: { type: 'choice', choice, confidence: 0.5, probabilities } }, usage: {} };
+  }
+  const keys = Object.keys(body.questions.nextControl.criteria);
+  const choice = PICK_ORDER.map((p) => keys.find((k) => k === p || k.startsWith(p))).find(Boolean) ?? NONE_OPTION;
+  const path = body.state.page.address;
+  const stage = path.includes('login') ? '로그인' : path.includes('AA020') ? '민원 안내' : '민원 찾기';
+  return {
+    model: 'mock',
+    answers: {
+      nextControl: { type: 'choice', choice, confidence: 0.9, probabilities: { [choice]: 0.9 } },
+      pageStage: { type: 'choice', choice: stage, confidence: 0.9, probabilities: { [stage]: 0.9 } },
+    },
+    usage: { input_tokens: 0, output_tokens: 0 },
+  };
+}
+
+// Playwright가 기대하는 브라우저 버전이 없으면 이미 받아 둔 Chrome for Testing을 찾아 쓴다
+function findBrowser() {
+  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+  const expected = chromium.executablePath();
+  if (existsSync(expected)) return undefined;
+  const cache = join(homedir(), 'Library/Caches/ms-playwright');
+  const app = 'Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
+  for (const dir of existsSync(cache) ? readdirSync(cache).filter((d) => /^chromium-\d+$/.test(d)).sort().reverse() : []) {
+    for (const arch of ['chrome-mac-arm64', 'chrome-mac-x64', 'chrome-mac']) {
+      const p = join(cache, dir, arch, app);
+      if (existsSync(p)) return p;
+    }
+  }
+  return undefined;
+}
+
+const requests = [];
+const context = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), 'gvrnmnt24-')), {
+  channel: 'chromium',
+  executablePath: findBrowser(),
+  headless: process.env.HEADED !== '1',
+  locale: 'ko-KR',
+  viewport: { width: 1400, height: 900 },
+  args: [`--disable-extensions-except=${root}`, `--load-extension=${root}`],
+});
+await context.route('https://api.typesafe.ai/**', async (route) => {
+  const body = route.request().postDataJSON();
+  requests.push(body);
+  await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockAnswer(body)) });
+});
+
+const sw = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
+const extId = new URL(sw.url()).host;
+const summary = { steps: [], checks: [] };
+const check = (name, ok, detail = '') => summary.checks.push({ name, ok: Boolean(ok), detail });
+
+// 1. 설정 창에서 키 저장 + 연결 확인
+const popup = await context.newPage();
+await popup.goto(`chrome-extension://${extId}/src/popup.html`);
+await popup.fill('#key', 'mock-key-for-smoke');
+await popup.click('#save');
+await popup.waitForSelector('#keyState.ok', { timeout: 10000 }).catch(() => {});
+check('설정 창: 연결 확인', (await popup.textContent('#keyState')) === '연결됐어요.');
+await popup.screenshot({ path: join(OUT, '0-popup.png'), fullPage: true });
+
+const page = await context.newPage();
+const shadow = (sel) => page.locator('gvrnmnt24-guide').locator(sel);
+
+// since: 이 시점 이후의 요청만 본다. until: 이런 요청이 올 때까지 기다린다 (늦게 그려지는 화면용)
+async function settle(name, { since = requests.length, until = () => true, maxWaitMs = 30000 } = {}) {
+  const before = since;
+  for (let t = 0; t < maxWaitMs / 500 && !requests.slice(before).some((b) => b.questions?.nextControl && until(b)); t += 1) {
+    await page.waitForTimeout(500);
+  }
+  await page
+    .waitForFunction(
+      () => {
+        const r = document.querySelector('gvrnmnt24-guide')?.shadowRoot;
+        const msg = r?.querySelector('.msg')?.textContent ?? '';
+        return r && !msg.includes('찾고 있어요') && (r.querySelector('.ring') || /모르겠|기다려|문제/.test(msg));
+      },
+      null,
+      { timeout: 25000 },
+    )
+    .catch(() => {});
+  await page.waitForTimeout(400);
+  const step = {
+    name,
+    url: page.url(),
+    stage: await shadow('.stage').textContent(),
+    msg: await shadow('.msg').textContent(),
+    ringShown: (await shadow('.ring').count()) > 0,
+    requestsSent: requests.length - before,
+  };
+  const body = requests.slice(before).filter((b) => b.questions?.nextControl).at(-1);
+  if (body?.questions?.nextControl) {
+    step.candidates = Object.keys(body.questions.nextControl.criteria).length - 1;
+    step.alreadyPressed = body.state.alreadyPressed;
+    writeFileSync(join(OUT, `${name}.request.json`), JSON.stringify(body, null, 2));
+  }
+  summary.steps.push(step);
+  await page.screenshot({ path: join(OUT, `${name}.png`) });
+  return step;
+}
+
+// plus.gov.kr(메인·로그인)은 자동화 브라우저를 "서비스 접속이 차단되었습니다"로 막는다 (2026-10-17 확인).
+// 차단을 우회하지 않는다. 자동 시험은 www.gov.kr 구간만 하고, 메인·로그인은 사람이 실제 크롬에서 확인한다 (README).
+const INFO = 'https://www.gov.kr/mw/AA020InfoCappView.do?HighCtgCD=A01010001&CappBizCD=13100000015';
+
+// 2. 시작 화면: 쉬운 말로 적기 → 목록에서 찾기 → 고르기
+await page.goto(INFO, { waitUntil: 'domcontentloaded' });
+await shadow('#gvrnmnt24-query').waitFor({ timeout: 20000 });
+await page.screenshot({ path: join(OUT, '1-start.png') });
+
+// 2-1. 개인정보처럼 보이는 말은 보내지 않는다
+let since = requests.length;
+await shadow('#gvrnmnt24-query').fill('홍길동님 등본');
+await shadow('[data-act="search"]').click();
+await page.waitForTimeout(800);
+check(
+  '검색: 개인정보처럼 보이면 보내지 않음',
+  requests.slice(since).every((b) => !b.questions?.service) && (await shadow('.msg').textContent()).includes('개인정보'),
+  await shadow('.msg').textContent(),
+);
+
+// 2-1b. 서류 이름을 적었는데 목록에 없으면 솔직하게 알린다
+await shadow('#gvrnmnt24-query').fill('제적등본');
+await shadow('[data-act="search"]').click();
+await page.waitForFunction(() => !document.querySelector('gvrnmnt24-guide').shadowRoot.querySelector('.msg').textContent.includes('찾고 있어요'), null, { timeout: 10000 });
+const missingMsg = await shadow('.msg').textContent();
+check('검색: 목록에 없는 서류 이름은 "목록에 없어요"', missingMsg.includes('목록에 없어요'), missingMsg);
+
+// 2-2. 쉬운 말 → 목록 후보 → 고르기
+since = requests.length;
+await shadow('#gvrnmnt24-query').fill('이사 다닌 기록 나오는 서류');
+await shadow('#gvrnmnt24-query').press('Enter');
+await shadow('button.choice').first().waitFor({ timeout: 10000 });
+const choices = await shadow('button.choice strong').allTextContents();
+await page.screenshot({ path: join(OUT, '1-search.png') });
+check('검색: 목록 후보를 확률 순으로 보여 줌', choices[0] === '주민등록표 초본' && choices.includes('주민등록표 등본'), choices.join(', '));
+const searchBody = requests.slice(since).find((b) => b.questions?.service);
+check('검색: 적은 말은 검색에만 쓰임', searchBody?.state?.request === '이사 다닌 기록 나오는 서류');
+since = requests.length;
+await shadow('button.choice').first().click();
+const info = await settle('2-info', { since });
+const firstAsk = requests.slice(since).find((b) => b.questions?.nextControl);
+check(
+  '목표는 고른 목록 항목으로 만듦 (적은 말이 들어가지 않음)',
+  firstAsk?.state.goal.includes('주민등록표 초본') && !JSON.stringify(firstAsk.state).includes('이사 다닌 기록 나오는'),
+);
+check('민원안내: 발급하기를 가리킴', info.ringShown && info.msg.includes('발급하기'), info.msg);
+// 안내 창 자리: 가릴 때만 옮긴다. 「발급하기」는 오른쪽 아래(기본 자리)에 있어 창이 왼쪽으로 가야 하고, 옮긴 뒤에는 가리지 않아야 한다
+const cover = () =>
+  page.evaluate(() => {
+    const r = document.querySelector('gvrnmnt24-guide').shadowRoot;
+    const p = r.querySelector('.panel');
+    const pr = p.getBoundingClientRect();
+    const hit = [...r.querySelectorAll('.ring')].some((g) => {
+      const b = g.getBoundingClientRect();
+      return !(b.right < pr.left || b.left > pr.right || b.bottom < pr.top || b.top > pr.bottom);
+    });
+    return { left: p.classList.contains('left'), hit };
+  });
+// 테두리가 실제로 「발급하기」 위에 있어야 한다 (그려졌는지만 보면 구석에 그려진 버그를 놓친다)
+const onTarget = await page.evaluate(() => {
+  const ring = document.querySelector('gvrnmnt24-guide').shadowRoot.querySelector('.ring')?.getBoundingClientRect();
+  const link = [...document.querySelectorAll('a')].find((a) => a.innerText.trim() === '발급하기')?.getBoundingClientRect();
+  return Boolean(ring && link && ring.left <= link.left && ring.right >= link.right && ring.top <= link.top && ring.bottom >= link.bottom);
+});
+check('테두리가 가리키는 버튼을 감쌈 (위치)', onTarget);
+const infoPanel = await cover();
+check('안내 창: 가리는 경우에만 옮김 (민원안내 → 왼쪽, 가리지 않음)', infoPanel.left && !infoPanel.hit, JSON.stringify(infoPanel));
+
+// 3. 가리킨 곳을 실제로 누른다 → 떠 있는 창의 "회원 신청하기"로 옮겨 가야 하고, 누른 기록이 다음 질문에 들어가야 한다
+since = requests.length;
+await page.getByRole('link', { name: '발급하기', exact: true }).first().click();
+const after = await settle('3-popup', { since });
+check('누른 기록이 다음 질문에 들어감', (after.alreadyPressed ?? []).includes('발급하기'), JSON.stringify(after.alreadyPressed));
+check('떠 있는 창: 회원 신청하기를 가리킴', after.ringShown && after.msg.includes('회원 신청하기'), after.msg);
+
+// 4. 같은 화면·같은 기록이면 캐시로 답한다: 한 번 다시 열어 묻게 한 뒤, 또 열면 새 요청이 없어야 한다
+since = requests.length;
+await page.goto(INFO, { waitUntil: 'domcontentloaded' });
+await settle('4-reopen', { since });
+since = requests.length;
+await page.goto(INFO, { waitUntil: 'domcontentloaded' });
+const again = await settle('5-cache', { since, until: () => false, maxWaitMs: 5000 });
+check('같은 화면은 다시 묻지 않음 (캐시)', again.requestsSent === 0 && again.ringShown, `요청 ${again.requestsSent}건`);
+
+// 5-1. 안 보이는 버튼 (가짜 화면): 넘기는 목록의 다른 장, 높이 0으로 접힌 메뉴 안의 버튼은 후보에 들어가면 안 된다
+const HIDDEN = 'https://www.gov.kr/__gvrnmnt24_test__/hidden.html';
+await context.route(HIDDEN, (route) =>
+  route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: readFileSync(join(root, 'test/fixtures/hidden.html'), 'utf8') }),
+);
+since = requests.length;
+await page.goto(HIDDEN, { waitUntil: 'domcontentloaded' });
+await settle('5-hidden', { since });
+const hiddenAsk = requests.slice(since).find((b) => b.questions?.nextControl);
+const hiddenKeys = Object.keys(hiddenAsk?.questions.nextControl.criteria ?? {});
+check(
+  '안 보이는 버튼은 후보에서 빠짐 (넘기는 목록·접힌 메뉴)',
+  ['자동차등록원부', '건축물대장', '자주 찾는 서비스 다음 목록'].every((k) => hiddenKeys.includes(k)) &&
+    !hiddenKeys.some((k) => /가족관계증명서|토지|병적증명|접힌 메뉴/.test(k)),
+  hiddenKeys.join(', '),
+);
+
+// 6. 약관 화면 (가짜 화면, www.gov.kr 주소로 띄움 — 요청은 정부24로 가지 않는다)
+const CONSENT = 'https://www.gov.kr/__gvrnmnt24_test__/consent.html';
+await context.route(CONSENT, (route) =>
+  route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: readFileSync(join(root, 'test/fixtures/consent.html'), 'utf8') }),
+);
+since = requests.length;
+await page.goto(CONSENT, { waitUntil: 'domcontentloaded' });
+await page.waitForFunction(() => document.querySelector('gvrnmnt24-guide')?.shadowRoot.querySelectorAll('.ring').length > 0, null, { timeout: 15000 }).catch(() => {});
+await page.waitForTimeout(400);
+const consentRings = await shadow('.ring').count();
+const consentMsg = await shadow('.msg').textContent();
+await page.screenshot({ path: join(OUT, '6-consent.png') });
+// 테두리가 감싼 요소의 id를 모은다
+const ringed = await page.evaluate(() => {
+  const r = document.querySelector('gvrnmnt24-guide').shadowRoot;
+  return [...r.querySelectorAll('.ring')].map((ring) => {
+    const b = ring.getBoundingClientRect();
+    const el = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+    return el?.id || el?.getAttribute('for') || el?.tagName;
+  });
+});
+check('약관: 필수 3곳만 표시 (선택·전체 동의·동의하지 않음 제외)', consentRings === 3 && ['t1', 't2', 'u1'].every((id) => ringed.includes(id)), `${consentRings}곳: ${ringed.join(', ')}`);
+check('약관: Jev에 묻지 않음 (코드가 처리)', requests.slice(since).every((b) => !b.questions?.nextControl));
+check('약관: 선택은 안 해도 된다고 안내', consentMsg.includes('「선택」'), consentMsg);
+const consentPanel = await cover();
+check('안내 창: 가리지 않으면 기본 자리(오른쪽) 그대로', !consentPanel.left && !consentPanel.hit, JSON.stringify(consentPanel));
+
+// 필수를 다 체크하면 Jev에 다음 버튼을 묻는다. 이때 선택·전체 동의·동의하지 않음은 후보에 없어야 한다
+since = requests.length;
+for (const id of ['t1', 't2', 'u1']) await page.check(`#${id}`);
+const consentNext = await settle('7-consent-next', { since });
+const consentAsk = requests.slice(since).find((b) => b.questions?.nextControl);
+const consentKeys = Object.keys(consentAsk?.questions.nextControl.criteria ?? {});
+check(
+  '약관: 다 체크하면 다음 버튼을 물음, 선택 항목은 후보에서 빠짐',
+  consentNext.msg.includes('다음') && !consentKeys.some((k) => /선택\]|전체 동의|동의하지 않음/.test(k)),
+  consentKeys.join(', '),
+);
+
+// 개인정보·형식 점검 (보낸 모든 요청)
+const asks = requests.filter((b) => b.questions?.nextControl);
+check(
+  '요청 state 필드가 정해진 것뿐',
+  asks.every((b) => JSON.stringify(Object.keys(b.state).sort()) === '["alreadyPressed","goal","page","site","userSituation"]'),
+);
+check(
+  '후보 이름에 개인정보 패턴 없음',
+  asks.every((b) => Object.keys(b.questions.nextControl.criteria).every((k) => !looksPersonal(k))),
+);
+check('주소에 쿼리 없음', asks.every((b) => !b.state.page.address.includes('?')));
+
+await context.close();
+writeFileSync(join(OUT, 'summary.json'), JSON.stringify(summary, null, 2));
+console.log(JSON.stringify(summary, null, 2));
+process.exit(summary.checks.every((c) => c.ok) ? 0 : 1);

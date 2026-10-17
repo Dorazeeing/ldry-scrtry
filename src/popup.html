@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>ldry-scrtry 설정</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <h1>ldry-scrtry 설정</h1>
+  <p class="who">강사·관리자용 화면이에요.</p>
+
+  <section>
+    <h2>TypeSafe 키</h2>
+    <p id="keyState" aria-live="polite">확인 중…</p>
+    <label for="key">키 넣기</label>
+    <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="TypeSafe 콘솔에서 받은 키">
+    <div class="row">
+      <button type="button" id="save" class="primary">저장하고 연결 확인</button>
+      <button type="button" id="clear">키 지우기</button>
+    </div>
+    <p class="hint">키는 이 컴퓨터의 확장 저장소에만 둬요. 정부24 화면 쪽 코드는 키를 볼 수 없어요.</p>
+  </section>
+
+  <section>
+    <h2>안내 상태</h2>
+    <p id="guideState">확인 중…</p>
+    <p id="pressed" class="hint"></p>
+    <button type="button" id="stop">안내 끝내기</button>
+  </section>
+
+  <section>
+    <h2>최근 판단 (시험 기록)</h2>
+    <ol id="log" class="log"></ol>
+    <button type="button" id="logClear">기록 지우기</button>
+  </section>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

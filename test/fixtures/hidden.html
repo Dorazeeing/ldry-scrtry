@@ -1,0 +1,32 @@
+<!doctype html>
+<!-- 시험용 가짜 화면 (실제 정부24 화면이 아님). 정부24 메인의 "자주 찾는 서비스"처럼 옆으로 넘기는 목록과 접힌 메뉴를 흉내 낸다.
+     안 보이는 장·접힌 메뉴 안의 버튼은 후보에 들어가면 안 된다. -->
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>메인 | 시험 화면</title>
+  <style>
+    body { font: 16px/1.6 sans-serif; padding: 24px; }
+    .slider { width: 600px; overflow: hidden; border: 1px solid #ccc; }
+    .track { display: flex; width: 1800px; transform: translateX(0); }
+    .slide { width: 600px; display: flex; gap: 12px; padding: 12px; }
+    .slide a { display: block; padding: 12px; border: 1px solid #999; }
+    .menu { height: 0; overflow: hidden; position: absolute; top: 0; left: 0; width: 300px; }
+    .menu a { display: block; padding: 12px; }
+  </style>
+</head>
+<body>
+  <nav class="menu"><a href="#m1">접힌 메뉴: 가족관계증명서</a><a href="#m2">접힌 메뉴: 인감증명서</a></nav>
+  <main>
+    <h2>자주 찾는 서비스</h2>
+    <div class="slider">
+      <div class="track">
+        <div class="slide"><a href="#a">자동차등록원부</a><a href="#b">건축물대장</a></div>
+        <div class="slide"><a href="#c">가족관계증명서</a><a href="#d">토지(임야)대장</a></div>
+        <div class="slide"><a href="#e">병적증명</a></div>
+      </div>
+    </div>
+    <button type="button">자주 찾는 서비스 다음 목록</button>
+  </main>
+</body>
+</html>

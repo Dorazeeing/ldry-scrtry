@@ -1,0 +1,141 @@
+[
+  {
+    "query": "이사 다닌 기록이 나오는 서류",
+    "expected": [
+      "resident_abstract"
+    ]
+  },
+  {
+    "query": "우리 집 식구 다 나오는 거",
+    "expected": [
+      "resident_copy"
+    ]
+  },
+  {
+    "query": "아들 딸이랑 가족인 거 증명",
+    "expected": [
+      "family_relation"
+    ]
+  },
+  {
+    "query": "땅 주인 확인하는 서류",
+    "expected": [
+      "land_register"
+    ]
+  },
+  {
+    "query": "집 건물 서류",
+    "expected": [
+      "building_register"
+    ]
+  },
+  {
+    "query": "차 서류",
+    "expected": [
+      "car_register"
+    ]
+  },
+  {
+    "query": "군대 갔다 온 증명",
+    "expected": [
+      "military_record"
+    ]
+  },
+  {
+    "query": "세금 다 냈다는 증명",
+    "expected": [
+      "local_tax_cert",
+      "national_tax_cert"
+    ]
+  },
+  {
+    "query": "농사짓는 사람 확인서",
+    "expected": [
+      "farm_business"
+    ]
+  },
+  {
+    "query": "건강보험 직장 다닌 기록",
+    "expected": [
+      "health_insurance"
+    ]
+  },
+  {
+    "query": "등본",
+    "expected": [
+      "resident_copy"
+    ]
+  },
+  {
+    "query": "초본",
+    "expected": [
+      "resident_abstract"
+    ]
+  },
+  {
+    "query": "운전면허 기록",
+    "expected": [
+      "driving_record"
+    ]
+  },
+  {
+    "query": "도장 증명",
+    "expected": [
+      "seal_cert"
+    ]
+  },
+  {
+    "query": "해외 가려고 여권",
+    "expected": [
+      "passport_reissue"
+    ]
+  },
+  {
+    "query": "혼인관계증명서",
+    "expected": [
+      "marriage_cert"
+    ]
+  },
+  {
+    "query": "결혼한 거 증명",
+    "expected": [
+      "marriage_cert"
+    ]
+  },
+  {
+    "query": "이혼한 기록",
+    "expected": [
+      "marriage_cert"
+    ]
+  },
+  {
+    "query": "내 출생 기록 나오는 증명서",
+    "expected": [
+      "basic_cert"
+    ]
+  },
+  {
+    "query": "예방주사 맞은 기록",
+    "expected": [
+      "vaccination_cert"
+    ]
+  },
+  {
+    "query": "아파트 공시가격",
+    "expected": [
+      "apartment_price"
+    ]
+  },
+  {
+    "query": "보훈 유공자 확인",
+    "expected": [
+      "national_merit"
+    ]
+  },
+  {
+    "query": "사대보험 가입 내역",
+    "expected": [
+      "social_insurance"
+    ]
+  }
+]

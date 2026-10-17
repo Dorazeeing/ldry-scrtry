@@ -1,0 +1,7 @@
+node_modules/
+smoke-out/
+trial-out/
+*.zip
+.env*
+.omc/
+.DS_Store

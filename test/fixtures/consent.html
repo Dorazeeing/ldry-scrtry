@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- 시험용 가짜 약관 화면 (실제 정부24 화면이 아님). smoke.mjs가 www.gov.kr 주소로 띄운다 (요청은 정부24로 가지 않음).
+     실제 정부24 약관 화면의 표기(「필수」·「선택」 위치)는 로그인 후 사람이 확인해야 한다. -->
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>약관 동의 | 시험 화면</title>
+  <style>body { font: 16px/1.6 sans-serif; padding: 24px; max-width: 760px; } li, .row { margin: 12px 0; } </style>
+</head>
+<body>
+  <main>
+    <h2>약관 동의</h2>
+    <div class="agree-all"><input type="checkbox" id="all"><label for="all">전체 동의 (선택 항목 포함)</label></div>
+    <ul>
+      <li><input type="checkbox" id="t1"><label for="t1">[필수] 정부24 이용약관 동의</label> <a href="#t1">보기</a></li>
+      <li><input type="checkbox" id="t2"><label for="t2">[필수] 개인정보 수집·이용 동의</label> <a href="#t2">보기</a></li>
+      <li><input type="checkbox" id="t3"><label for="t3">[선택] 맞춤 혜택 알림 받기 동의</label></li>
+    </ul>
+    <div class="row">
+      <p>고유식별정보 처리 동의 (필수)</p>
+      <input type="radio" name="uid" id="u1"><label for="u1">동의함</label>
+      <input type="radio" name="uid" id="u2"><label for="u2">동의하지 않음</label>
+    </div>
+    <div class="row">
+      <p>개인정보 제3자 제공 동의 (선택)</p>
+      <input type="radio" name="tp" id="p1"><label for="p1">동의함</label>
+      <input type="radio" name="tp" id="p2"><label for="p2">동의하지 않음</label>
+    </div>
+    <button type="button">취소</button>
+    <button type="button">다음</button>
+  </main>
+</body>
+</html>
