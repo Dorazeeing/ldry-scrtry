@@ -120,6 +120,7 @@
         <p class="msg" aria-live="polite"></p>
         <div class="consent" hidden>
           <ul>
+            <li>길잡이는 <b>정부24</b>와 서류를 내려받는 <b>기관 사이트</b>(국세청 홈택스, 건강보험, 가족관계등록시스템 등)에서 켜져요.</li>
             <li>길잡이는 지금 보시는 화면의 <b>버튼과 칸 이름, 쪽 주소</b>를 서버(싱가포르)로 보내요.</li>
             <li>서버는 이것을 AI(미국 TypeSafe 회사)에게 물어서 다음에 누를 곳을 알려 드려요. TypeSafe는 보낸 내용을 AI 학습에 쓰지 않는다고 밝히고 있어요.</li>
             <li>칸에 <b>적은 내용</b>(이름·주민번호 등)은 읽지도 보내지도 않아요. 개인정보로 보이는 글자는 빼고 보내요.</li>
@@ -178,6 +179,9 @@
     unknown_goal: '목록에 있는 것만 고를 수 있어요. 다시 찾아 주세요.',
   };
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  // 인증 창처럼 떠 있는 iframe 안은 읽을 수 없다. 창 안에서 흔히 하는 순서를 고정 문구로 알려 준다 (서버로 보내지 않는다).
+  const FRAME_HELP =
+    '창이 열렸어요. 창 안은 길잡이가 볼 수 없어요. 창에 적힌 대로 직접 해 주세요. 보통은 ① 쓰는 인증 앱 고르기 ② 이름·생년월일·휴대폰 번호 적기 ③ 「필수」 동의에 체크 ④ 「인증 요청」 누르기예요.';
   const ACTION_TEXT = {
     button: (l) => `「${l}」 버튼을 누르세요.`,
     link: (l) => `「${l}」 글자를 누르세요.`,
@@ -338,7 +342,7 @@
     if (covers(ui.panel.getBoundingClientRect())) ui.panel.classList.toggle('left', wasLeft);
   }
 
-  const shown = (els) => els.some((e) => e.isConnected && isVisible(e));
+  const shown = (els) => els.some((e) => e.isConnected && isClickable(e));
   const targetsShown = () => targets.length > 0 && targets.every((t) => shown(t.els));
 
   // 여러 요소(체크박스와 그 이름)를 감싸는 사각형. 너무 떨어져 있으면 마지막 것(이름)만 쓴다
@@ -429,6 +433,48 @@
     return !clippedOut(el, r);
   }
 
+  // ---------- 가려진 것은 누를 수 없다 ----------
+  // 인증 창·어두운 막이 뜨면 뒤의 버튼은 눈에는 보여도 눌리지 않는다. 그걸 가리키면 안 된다.
+  // (2026-10-17 정부24 로그인: 「간편인증」을 누르자 인증 창이 떴는데, 가려진 카드에 테두리가 그대로 남았다)
+  // 길잡이 창(host)은 건너뛴다 — 우리 창 밑에 있는 버튼까지 "가려졌다"고 하면 안 된다.
+  function topAt(x, y) {
+    return document.elementsFromPoint(x, y).find((e) => e !== host && !host.contains(e)) ?? null;
+  }
+
+  function isCovered(el) {
+    const r = el.getBoundingClientRect();
+    const left = Math.max(r.left, 0);
+    const right = Math.min(r.right, innerWidth);
+    const top = Math.max(r.top, 0);
+    const bottom = Math.min(r.bottom, innerHeight);
+    if (right - left < 2 || bottom - top < 2) return false; // 화면 밖: 스크롤하면 보인다
+    const y = (top + bottom) / 2;
+    let covered = 0;
+    for (const x of [(left + right) / 2, left + (right - left) * 0.2, left + (right - left) * 0.8]) {
+      const t = topAt(x, y);
+      // 맨 위가 나 자신, 내 안쪽, 내 바깥쪽(감싸는 칸)이면 가려진 게 아니다
+      if (t && !(t === el || el.contains(t) || t.contains(el))) covered += 1;
+    }
+    return covered >= 2; // 세 점 중 둘 이상 (고정 머리글이 살짝 걸친 정도는 봐준다)
+  }
+
+  const isClickable = (el) => isVisible(el) && !isCovered(el);
+
+  // 인증 창처럼 화면 위에 떠서 가운데를 덮은 iframe. 안은 길잡이가 읽을 수 없다.
+  function coveringFrame() {
+    for (const [fx, fy] of [[0.5, 0.5], [0.35, 0.5], [0.65, 0.5], [0.5, 0.4], [0.5, 0.65]]) {
+      const t = topAt(innerWidth * fx, innerHeight * fy);
+      if (t?.tagName !== 'IFRAME') continue;
+      const r = t.getBoundingClientRect();
+      if (r.width * r.height < innerWidth * innerHeight * 0.15) continue; // 작은 광고 틀 같은 것은 무시
+      for (let a = t, i = 0; a && a !== document.body && i < 5; a = a.parentElement, i += 1) {
+        const pos = getComputedStyle(a).position;
+        if (pos === 'fixed' || pos === 'absolute') return true; // 떠 있는 창
+      }
+    }
+    return false;
+  }
+
   // 옆으로 넘기는 목록의 안 보이는 장, 높이 0으로 접힌 메뉴처럼 조상이 overflow:hidden으로 잘라 낸 요소는 안 보이는 것으로 친다.
   // checkVisibility는 이걸 못 잡는다 (2026-10-17 정부24 메인: 안 보이는 「가족관계증명서」를 가리켜 테두리가 화면 구석에 그려짐).
   // 스크롤되는 상자(auto·scroll)는 스크롤하면 보이므로 자른 것으로 보지 않는다.
@@ -472,13 +518,13 @@
     if (tag === 'input' && (type === 'radio' || type === 'checkbox')) {
       const lab = el.labels?.[0];
       // 꾸민 선택지는 진짜 input을 숨기고 label만 보여 준다
-      const visibleEl = isVisible(el) ? el : lab && isVisible(lab) ? lab : null;
+      const visibleEl = isClickable(el) ? el : lab && isClickable(lab) ? lab : null;
       if (!visibleEl) return null;
       const parts = lab ? lines(lab.innerText) : [];
       const label = parts[0] || el.getAttribute('aria-label') || el.getAttribute('title') || '';
       return {
         el: visibleEl,
-        box: [el, lab].filter((e) => e && isVisible(e)),
+        box: [el, lab].filter((e) => e && isClickable(e)),
         kind: 'option',
         label,
         detail: parts.slice(1).join(' '),
@@ -486,7 +532,7 @@
         consent: consentKind(el, parts.join(' ') || label),
       };
     }
-    if (!isVisible(el)) return null;
+    if (!isClickable(el)) return null;
     if (tag === 'select') return { el, kind: 'select', label: fieldLabel(el), detail: '', filled: el.value !== '' };
     if (tag === 'textarea' || tag === 'input') {
       if (type === 'button' || type === 'submit') return { el, kind: 'button', label: el.value || el.getAttribute('aria-label') || '', detail: '' };
@@ -667,6 +713,14 @@
       show({ msg: HOLD_TEXT[hold] });
       return;
     }
+    // 떠 있는 iframe(인증 창)이 화면을 덮고 있으면 서버에 묻지 않는다 — 뒤의 가려진 버튼을 가리키게 되므로
+    if (coveringFrame()) {
+      clearTarget();
+      lastSignature = '';
+      lastResult = null;
+      show({ stage: '창이 열려 있어요.', msg: FRAME_HELP });
+      return;
+    }
     const { candidates, map, page, dialog, consent } = collect();
     const dialogChanged = dialog !== lastDialog;
     lastDialog = dialog;
@@ -774,6 +828,7 @@
     if (act === 'collapse' || act === 'expand') {
       collapsed = act === 'collapse';
       ui.wrap.classList.toggle('collapsed', collapsed);
+      send({ type: 'ui/collapsed', value: collapsed }); // 다른 쪽(주소)으로 가도 접은 상태를 기억한다
     }
   });
 
@@ -790,6 +845,13 @@
     'click',
     (e) => {
       if (!state?.active || e.composedPath().includes(host)) return;
+      // 가리킨 곳을 눌렀으면 그 판단은 끝난 것: 같은 화면이어도 이전 판단을 다시 쓰지 않는다
+      if (targets.some((t) => t.els.some((x) => x === e.target || x.contains(e.target)))) {
+        lastSignature = '';
+        lastResult = null;
+        clearTarget();
+        show({ msg: '다음에 누를 곳을 다시 찾고 있어요…' });
+      }
       let el = e.target;
       for (let i = 0; el && i < 6; i += 1, el = el.parentElement) {
         const label = labelOf.get(el);
@@ -839,6 +901,8 @@
       show({ msg: ERROR_TEXT.extension, guiding: false });
       return;
     }
+    collapsed = state.collapsed === true;
+    ui.wrap.classList.toggle('collapsed', collapsed);
     if (state.active) {
       show({ msg: '다음에 누를 곳을 찾고 있어요…' });
       schedule('load');

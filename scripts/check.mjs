@@ -29,7 +29,9 @@ const referenced = [
   manifest.action?.default_popup,
   ...(manifest.content_scripts ?? []).flatMap((c) => c.js ?? []),
 ];
-for (const f of referenced) if (!existsSync(join(root, f))) problems.push(`매니페스트가 가리키는 파일 없음: ${f}`);
+for (const f of [...referenced, ...Object.values(manifest.icons ?? {}), ...Object.values(manifest.action?.default_icon ?? {})])
+  if (!existsSync(join(root, f))) problems.push(`매니페스트가 가리키는 파일 없음: ${f}`);
+for (const n of ['16', '48', '128']) if (!manifest.icons?.[n]) problems.push(`manifest icons.${n} 없음 (웹스토어 필수)`);
 
 // 사이트 권한은 src/lib/sites.js 목록(정부24 + 공지에 나온 기관 사이트)과 TypeSafe 주소뿐이어야 한다
 const { MATCHES } = await import('../src/lib/sites.js');

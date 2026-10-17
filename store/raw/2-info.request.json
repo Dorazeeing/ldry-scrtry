@@ -1,0 +1,290 @@
+{
+  "model": "jev-latest",
+  "state": {
+    "site": "정부24 (Korean government services portal)",
+    "goal": "Use 정부24 to get \"주민등록표 초본\" (내 주소가 바뀌어 온 기록(이사 다닌 기록)이 나오는 서류) through the 정부24 service \"주민등록표 등본(초본) 발급\", and if it issues a document, print it on this computer. On the application form, choose 초본, not 등본.",
+    "userSituation": "An older Korean citizen who is not used to computers. They log in and prove identity with mobile simple authentication (간편인증, e.g. KakaoTalk or Naver).",
+    "page": {
+      "title": "주민등록표 등본(초본) 발급 | 민원안내 및 신청 | 정부24",
+      "address": "www.gov.kr/mw/AA020InfoCappView.do",
+      "headings": [
+        "정부24",
+        "주민등록표 등본(초본) 발급",
+        "서비스 개요",
+        "기본정보",
+        "신청 방법 및 절차"
+      ]
+    },
+    "alreadyPressed": []
+  },
+  "questions": {
+    "nextControl": {
+      "type": "choice",
+      "instructions": {
+        "question": "Which one of the on-screen controls should the user use next to make progress toward `goal`?",
+        "rules": [
+          "Consider `userSituation`, the current `page`, and `alreadyPressed` (controls the user used earlier, oldest first).",
+          "If a pop-up window is open on top of the page (its text is `page.popupText`), pick the control in it that continues toward the goal.",
+          "Prefer controls in the main content of this page over site-wide header, footer or menu links, unless the goal can only be reached through the menu.",
+          "If the page asks the user to choose an authentication or login method (such as 공동인증서, 금융인증서 or 간편인증), pick the method described in `userSituation`.",
+          "On a form, fields already filled in and options already selected are done. Pick an empty field only if this user must fill it; skip optional settings (such as a security-keyboard option) and fields meant for other kinds of users (such as foreigner ID fields for a Korean citizen). Once the needed fields are done, pick the control that submits or continues.",
+          "Do not pick controls that log out, cancel, go back, close the page, or start a different service.",
+          "On a terms or consent page, agree only to required (필수) items; never pick optional (선택) consents or \"agree to all\"."
+        ]
+      },
+      "criteria": {
+        "110": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "Home": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "민원서비스": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "주민등록법 시행규칙: 별지 서식 18, 19호": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "처리기간 계산 방법": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "주민등록법 시행규칙: 별지 서식 7, 7호의2, 9호": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "신청작성예시": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "하단 참조": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "시군구 및 읍면동 출장소": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "다운로드": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "주민등록법 (제29조)": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "주민등록법 시행령 (제47조)": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "주민등록법 시행규칙 (제13조 ,제15조)": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "행정안전부": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "주민등록표등(초)본은 무료인가요?": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "주민등록표등본 발급물을 팩스나 파일로 받을 수 있나요?": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "네": {
+          "kind": "button",
+          "area": "main content of this page"
+        },
+        "아니오": {
+          "kind": "button",
+          "area": "main content of this page"
+        },
+        "(5점) 서비스 이용에 문제가 없음": {
+          "kind": "radio button or checkbox option",
+          "area": "main content of this page",
+          "state": "not selected"
+        },
+        "(4점) 모든 내용을 이해하기가 쉬움": {
+          "kind": "radio button or checkbox option",
+          "area": "main content of this page",
+          "state": "not selected"
+        },
+        "(3점) 화면이 간편하게 구성되어 있음": {
+          "kind": "radio button or checkbox option",
+          "area": "main content of this page",
+          "state": "not selected"
+        },
+        "이 페이지 이용 중 불편사항이나 기능오류 등 개선이 필요한 부분에 대한…": {
+          "kind": "text field to type into",
+          "area": "main content of this page",
+          "state": "empty"
+        },
+        "평가완료": {
+          "kind": "button",
+          "area": "main content of this page"
+        },
+        "국민 신문고": {
+          "kind": "link",
+          "area": "main content of this page",
+          "detail": "법령, 제도, 절차 등 행정업무에 관한 질의 또는 설명이나 해석의 요구는 국민신문고를 이용해 주세요."
+        },
+        "발급하기": {
+          "kind": "link",
+          "area": "main content of this page"
+        },
+        "정부24": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "For Foreigners": {
+          "kind": "button",
+          "area": "site-wide header, footer or menu",
+          "detail": "목록 �쇱튂湲�"
+        },
+        "어린이": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "시니어": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "지원": {
+          "kind": "button",
+          "area": "site-wide header, footer or menu",
+          "detail": "목록 �쇱튂湲�"
+        },
+        "화면크기": {
+          "kind": "button",
+          "area": "site-wide header, footer or menu",
+          "detail": "제어 목록 �쇱튂湲�"
+        },
+        "AI국민비서": {
+          "kind": "button",
+          "area": "site-wide header, footer or menu"
+        },
+        "통합검색": {
+          "kind": "button",
+          "area": "site-wide header, footer or menu"
+        },
+        "로그인": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "회원가입": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "혜택알리미": {
+          "kind": "button",
+          "area": "site-wide header, footer or menu"
+        },
+        "생활": {
+          "kind": "button",
+          "area": "site-wide header, footer or menu"
+        },
+        "정책정보": {
+          "kind": "button",
+          "area": "site-wide header, footer or menu"
+        },
+        "고객센터": {
+          "kind": "button",
+          "area": "site-wide header, footer or menu"
+        },
+        "서비스 개요": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "기본정보": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "신청 방법 및 절차": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "제출 서류": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "부가정보": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "정보 변경내역": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "국민소통채널": {
+          "kind": "button",
+          "area": "site-wide header, footer or menu"
+        },
+        "디지털증명": {
+          "kind": "button",
+          "area": "site-wide header, footer or menu"
+        },
+        "부가서비스": {
+          "kind": "button",
+          "area": "site-wide header, footer or menu"
+        },
+        "정부24 안내열기": {
+          "kind": "button",
+          "area": "site-wide header, footer or menu"
+        },
+        "인스타그램": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "엑스": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "카카오스토리": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "네이버블로그": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "개인정보처리방침": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "이용약관": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "보안센터": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "웹 접근성 품질인증 마크 획득": {
+          "kind": "link",
+          "area": "site-wide header, footer or menu"
+        },
+        "해당 없음": "None of the listed controls moves the user closer to the goal right now."
+      }
+    },
+    "pageStage": {
+      "type": "choice",
+      "instructions": "Which step of reaching `goal` does the current `page` show?",
+      "criteria": {
+        "민원 찾기": "A home, search or list page where the user still has to find the service in `goal`.",
+        "민원 안내": "The information page of the service in `goal`, which has the button that starts an application.",
+        "로그인": "A page or window for choosing a login or authentication method (such as 공동인증서, 금융인증서, 간편인증) or otherwise proving identity, even if it also has name or ID-number fields.",
+        "약관 동의": "A page asking the user to agree to terms or to the use of personal information.",
+        "신청서 작성": "An application form for choosing what the document includes and how it is received. Not a page whose main step is proving identity with an authentication method.",
+        "신청 완료·인쇄": "A page after applying, where the user opens, views or prints the issued document.",
+        "프로그램 설치": "A page asking the user to install a security or printing program.",
+        "관련 없는 화면": "A page unrelated to the service in `goal`."
+      }
+    }
+  }
+}

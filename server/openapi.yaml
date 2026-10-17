@@ -102,7 +102,7 @@ components:
                 - empty             # 400 검색어 없음
                 - personal          # 400 검색어가 개인정보처럼 보임
                 - forbidden_origin  # 403 확장이 아닌 곳에서 옴 (ALLOWED_ORIGIN)
-                - forbidden_site    # 403 page.path가 길잡이 사이트(정부24)가 아님
+                - forbidden_site    # 403 page.path가 길잡이가 켜지는 사이트(src/lib/sites.js)가 아님
                 - too_large         # 413 본문 64KB 초과
                 - not_found         # 404
                 - method_not_allowed # 405

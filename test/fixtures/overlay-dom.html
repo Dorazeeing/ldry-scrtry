@@ -1,0 +1,9 @@
+<!doctype html>
+<!-- 시험용 가짜 화면: 어두운 막과 창(DOM)이 화면을 덮는다. 뒤의 버튼은 눌리지 않으므로 후보에서 빠져야 한다. -->
+<html lang="ko"><head><meta charset="utf-8"><title>창 시험 | 시험 화면</title>
+<style>body{font:16px/1.6 sans-serif;padding:24px}
+.veil{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10}
+.box{position:fixed;left:25%;top:25%;width:50%;height:50%;background:#fff;z-index:11;padding:24px}</style></head>
+<body><main><h2>뒤쪽 화면</h2><button type="button">다음 단계 뒤</button> <button type="button">취소 뒤</button></main>
+<div class="veil"></div>
+<div class="box"><h3>인증서 고르기</h3><button type="button">인증서 선택하기</button></div></body></html>

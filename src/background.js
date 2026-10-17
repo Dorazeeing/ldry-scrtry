@@ -73,6 +73,7 @@ async function publicState() {
     goalId: guide.goalId,
     goalTitle: goalFor(guide.goalId).title,
     consented: await hasConsent(),
+    collapsed: guide.collapsed === true,
   };
 }
 
@@ -171,6 +172,10 @@ async function handle(msg, sender) {
       await setGuide({ active: true, goalId: msg.goalId, pressed: [] });
       return publicState();
     }
+    case 'ui/collapsed':
+      if (!page) break;
+      await setGuide({ collapsed: msg.value === true });
+      return { ok: true };
     case 'guide/stop':
       await setGuide({ active: false, pressed: [] });
       return publicState();

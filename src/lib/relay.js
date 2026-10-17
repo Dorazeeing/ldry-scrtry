@@ -4,7 +4,7 @@
 // 중계 주소는 여기 한 곳. manifest.json host_permissions와 같아야 한다 (npm run check가 검사).
 export const RELAY_URL = 'https://relay-production-4d72.up.railway.app';
 // 동의 문구(src/content.js)를 바꾸면 올린다 → 다시 동의를 받는다
-export const CONSENT_VERSION = 1;
+export const CONSENT_VERSION = 2; // 2: 기관 사이트에서도 켜진다는 안내 추가
 export const TIMEOUT_MS = 12000;
 export const RETRY_WAIT_MS = 1500;
 

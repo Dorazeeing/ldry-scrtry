@@ -5,6 +5,7 @@
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { findBrowser } from './browser.mjs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { RELAY_URL } from '../src/lib/relay.js';
@@ -14,7 +15,7 @@ import { createRelay } from '../server/relay.js';
 process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = '1'; // service worker의 fetch도 가로채기
 const root = new URL('..', import.meta.url).pathname;
 const { chromium } = createRequire(process.env.PLAYWRIGHT_FROM ?? join(root, '../slop-detector/package.json'))('playwright');
-const OUT = join(root, 'smoke-out');
+const OUT = process.env.SMOKE_OUT ? join(root, process.env.SMOKE_OUT) : join(root, 'smoke-out');
 mkdirSync(OUT, { recursive: true });
 
 // 가짜 Jev: 아는 이름이 후보에 있으면 고르고, 없으면 "해당 없음"
@@ -42,29 +43,14 @@ function mockAnswer(body) {
   };
 }
 
-// Playwright가 기대하는 브라우저 버전이 없으면 이미 받아 둔 Chrome for Testing을 찾아 쓴다
-function findBrowser() {
-  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
-  const expected = chromium.executablePath();
-  if (existsSync(expected)) return undefined;
-  const cache = join(homedir(), 'Library/Caches/ms-playwright');
-  const app = 'Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
-  for (const dir of existsSync(cache) ? readdirSync(cache).filter((d) => /^chromium-\d+$/.test(d)).sort().reverse() : []) {
-    for (const arch of ['chrome-mac-arm64', 'chrome-mac-x64', 'chrome-mac']) {
-      const p = join(cache, dir, arch, app);
-      if (existsSync(p)) return p;
-    }
-  }
-  return undefined;
-}
-
 const requests = [];
 const context = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), 'gvrnmnt24-')), {
   channel: 'chromium',
-  executablePath: findBrowser(),
+  executablePath: findBrowser(chromium),
   headless: process.env.HEADED !== '1',
   locale: 'ko-KR',
-  viewport: { width: 1400, height: 900 },
+  // 스토어 스크린샷은 1280×800: VIEWPORT=1280x800 SMOKE_OUT=store/raw npm run smoke
+  viewport: (([w, h]) => ({ width: Number(w), height: Number(h) }))((process.env.VIEWPORT ?? '1400x900').split('x')),
   args: [`--disable-extensions-except=${root}`, `--load-extension=${root}`],
 });
 // 실제 중계 서버 코드(server/relay.js)를 이 시험 안에서 띄우고, 가짜 TypeSafe(mockAnswer)를 붙인다.
@@ -272,6 +258,33 @@ check(
     !hiddenKeys.some((k) => /가족관계증명서|토지|병적증명|접힌 메뉴/.test(k)),
   hiddenKeys.join(', '),
 );
+
+// 5-2. 창이 화면을 덮을 때 (2026-10-17 정부24 로그인: 인증 창이 떴는데 가려진 「간편인증」 카드에 테두리가 남았다)
+async function fake(name, file) {
+  const url = `https://www.gov.kr/__gvrnmnt24_test__/${file}`;
+  await context.route(url, (route) =>
+    route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: readFileSync(join(root, 'test/fixtures', file), 'utf8') }),
+  );
+  const before = requests.length;
+  await page.goto(url, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(3500);
+  return { before, asks: requests.slice(before).filter((b) => b.questions?.nextControl), msg: await shadow('.msg').textContent(), rings: await shadow('.ring').count() };
+}
+const domOverlay = await fake('dom', 'overlay-dom.html');
+const domKeys = Object.keys(domOverlay.asks.at(-1)?.questions.nextControl.criteria ?? {});
+check('창(DOM)이 덮으면 뒤의 버튼은 후보에서 빠지고 창 안 버튼만 남음', domKeys.includes('인증서 선택하기') && !domKeys.some((k) => /뒤$/.test(k)), domKeys.join(', '));
+await page.screenshot({ path: join(OUT, '5-overlay-dom.png') });
+const frameOverlay = await fake('iframe', 'overlay-iframe.html');
+check('떠 있는 iframe 창이 덮으면 서버에 묻지 않고 도움말만', frameOverlay.asks.length === 0 && frameOverlay.rings === 0 && frameOverlay.msg.includes('창 안은 길잡이가 볼 수 없어요'), `${frameOverlay.asks.length}건, 테두리 ${frameOverlay.rings}개`);
+await page.screenshot({ path: join(OUT, '5-overlay-iframe.png') });
+
+// 5-3. 가리킨 곳을 누르면 그 판단은 버려진다 (민원안내 페이지에서 「발급하기」를 누른 직후 테두리가 사라지고 다시 찾는다)
+since = requests.length;
+await page.goto(INFO, { waitUntil: 'domcontentloaded' });
+await settle('5-follow-0', { since });
+await page.getByRole('link', { name: '발급하기', exact: true }).first().click();
+await page.waitForTimeout(150);
+check('가리킨 곳을 누르면 바로 테두리가 사라짐', (await shadow('.ring').count()) === 0, `테두리 ${await shadow('.ring').count()}개`);
 
 // 6. 약관 화면 (가짜 화면, www.gov.kr 주소로 띄움 — 요청은 정부24로 가지 않는다)
 const CONSENT = 'https://www.gov.kr/__gvrnmnt24_test__/consent.html';

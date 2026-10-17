@@ -79,15 +79,19 @@ test('서류 이름을 적었는데 목록에 없으면 알아챈다 (2026-10-17
   for (const [q, want] of Object.entries(cases)) assert.equal(namedButMissing(q), want, q);
 });
 
-test('기관 사이트에서 발급하는 서류: 사이트 기록에 있고, 범위 밖(정부24만, D-8)이면 결과에 알린다', async () => {
-  const { siteFor, MATCHES } = await import('../src/lib/sites.js');
-  for (const c of CATALOG.filter((x) => x.site)) assert.ok(siteFor(c.site), `${c.name}: ${c.site}가 sites.js에 없다`);
-  assert.deepEqual(MATCHES, ['https://www.gov.kr/*', 'https://plus.gov.kr/*']);
+test('기관 사이트에서 발급하는 서류: 사이트 목록에 있고 켜져 있어(D-9) 넘어가도 안내가 이어진다고 목표에 적는다', async () => {
+  const { siteFor, MATCHES, ALLOWED_HOSTS } = await import('../src/lib/sites.js');
+  for (const c of CATALOG.filter((x) => x.site)) {
+    assert.ok(siteFor(c.site), `${c.name}: ${c.site}가 sites.js에 없다`);
+    assert.ok(ALLOWED_HOSTS.has(c.site), `${c.name}: ${c.site}가 켜져 있지 않다`);
+  }
+  assert.equal(MATCHES.length, 16);
+  assert.ok(MATCHES.includes('https://efamily.scourt.go.kr/*') && MATCHES.includes('https://www.gov.kr/*'));
+  assert.ok(MATCHES.every((m) => m.startsWith('https://')), 'https만');
   const { publicItem, findService } = await import('../src/lib/catalog.js');
-  assert.equal(publicItem(findService('marriage_cert')).offsiteName, '대법원 전자가족관계등록시스템');
-  assert.equal(publicItem(findService('resident_abstract')).offsiteName, undefined);
+  assert.equal(publicItem(findService('marriage_cert')).offsiteName, undefined, '모두 켜져 있어 "길잡이가 안 떠요" 안내는 없다');
   assert.match(goalFor('marriage_cert').goal, /efamily\.scourt\.go\.kr/);
-  assert.doesNotMatch(goalFor('marriage_cert').goal, /guidance continues/);
+  assert.match(goalFor('marriage_cert').goal, /guidance continues/);
   assert.doesNotMatch(goalFor('resident_abstract').goal, /issued on/);
   assert.equal(namedButMissing('혼인관계증명서'), false, '이제 목록에 있다');
 });

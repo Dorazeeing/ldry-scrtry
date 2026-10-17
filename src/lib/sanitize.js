@@ -1,3 +1,5 @@
+import { siteFor } from './sites.js';
+
 // 페이지에서 모은 글자를 TypeSafe로 보내기 전에 거르는 곳.
 // 원칙: 버튼·링크·칸 이름과 화면 제목만 보낸다. 개인정보로 보이는 글자는 통째로 버린다 (AGENTS.md §3 개인정보).
 
@@ -26,6 +28,10 @@ export function looksPersonal(text) {
   if (s.includes('@')) return true;
   // "홍길동님", "홍길동 님의 신청내역" 등. "고객님"처럼 이름이 아닌 것도 버려지지만 안내에는 필요 없다
   if (/[가-힣]\s?님/.test(s)) return true;
+  // 주소: "서울특별시 성동구", "…로 12", "…길 3-4", "○○동 123번지"
+  if (/[가-힣]+(시|도)\s*[가-힣]+(구|군)(\s|$)/.test(s)) return true;
+  if (/[가-힣0-9]+(로|길)\s?\d+(-\d+)?(\s|$|번)/.test(s)) return true;
+  if (/[가-힣]+동\s?\d+(-\d+)?\s?번지?/.test(s)) return true;
   return false;
 }
 
@@ -105,13 +111,16 @@ export const MAX_PATH = 200;
 // 화면 정보를 밖으로 보내기 전에 거른다. 확장은 서버로 보내기 전에, 중계 서버는 받은 뒤에 같은 규칙으로 다시 한다.
 // 주소가 "호스트+경로"이고 정부24인지는 호출하는 쪽(guide.js)이 확인한다.
 export function cleanGuidePayload({ page, candidates, pressed }) {
+  const path = stripSession(page?.path).slice(0, MAX_PATH);
+  // 정부24 밖 사이트는 화면 속 글(제목 글·창 안내 글)을 보내지 않는다 (sites.js pageText)
+  const sendText = siteFor(path.split('/')[0])?.pageText !== false;
   const list = focusPopup(cleanCandidates(Array.isArray(candidates) ? candidates.slice(0, 400) : []).candidates);
   return {
     page: {
       title: cleanText(page?.title, 80),
-      path: stripSession(page?.path).slice(0, MAX_PATH),
-      headings: cleanHeadings(page?.headings),
-      popupText: cleanText(page?.popupText, MAX_POPUP_TEXT),
+      path,
+      headings: sendText ? cleanHeadings(page?.headings) : [],
+      popupText: sendText ? cleanText(page?.popupText, MAX_POPUP_TEXT) : '',
     },
     candidates: list,
     pressed: cleanPressed(pressed),

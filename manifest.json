@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ldry-scrtry",
   "version": "0.1.0",
-  "description": "정부24에서 다음에 누를 곳을 큰 테두리로 알려 주는 비공식 길잡이입니다. 정부24·행정안전부와 관계없습니다.",
+  "description": "정부24와 민원 서류를 발급하는 기관 사이트에서 다음에 누를 곳을 큰 테두리로 알려 주는 비공식 길잡이입니다. 정부24·행정안전부와 관계없습니다.",
   "minimum_chrome_version": "116",
   "permissions": [
     "storage"
@@ -18,7 +18,21 @@
     {
       "matches": [
         "https://www.gov.kr/*",
-        "https://plus.gov.kr/*"
+        "https://plus.gov.kr/*",
+        "https://efamily.scourt.go.kr/*",
+        "https://www.car365.go.kr/*",
+        "https://www.eais.go.kr/*",
+        "https://nip.kdca.go.kr/*",
+        "https://www.hometax.go.kr/*",
+        "https://hometax.go.kr/*",
+        "https://www.efine.go.kr/*",
+        "https://www.nhis.or.kr/*",
+        "https://www.wetax.go.kr/*",
+        "https://pmp.mpva.go.kr/*",
+        "https://www.realtyprice.kr/*",
+        "https://realtyprice.kr/*",
+        "https://www.e-health.go.kr/*",
+        "https://www.4insure.or.kr/*"
       ],
       "js": [
         "src/content.js"
@@ -28,6 +42,15 @@
   ],
   "action": {
     "default_title": "ldry-scrtry 설정",
-    "default_popup": "src/popup.html"
+    "default_popup": "src/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   }
 }

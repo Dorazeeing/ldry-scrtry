@@ -8,6 +8,7 @@ import {
   cleanPath,
   cleanText,
   focusPopup,
+  cleanGuidePayload,
   looksPersonal,
 } from '../src/lib/sanitize.js';
 
@@ -88,4 +89,20 @@ test('제목: 중복·개인정보 제거, 5개까지', () => {
 
 test('주소: 경로 속 세션 값(;jsessionid=…)을 버린다', () => {
   assert.equal(cleanPath('https://www.gov.kr/mw/AA040OfferMainFrm.do;jsessionid=ABC123?x=1'), 'www.gov.kr/mw/AA040OfferMainFrm.do');
+});
+
+test('주소 모양 글자를 개인정보로 거른다 (이름·번호 없이도 새는 틈)', () => {
+  for (const s of ['서울특별시 성동구 왕십리로 12', '경기도 성남시 분당구', '왕십리로 12-3', '행당동 123번지']) assert.equal(looksPersonal(s), true, s);
+  for (const s of ['시군구 및 읍면동 출장소', '주민등록법 시행규칙 (제13조 ,제15조)', '발급하기', '다음 목록', '로그인']) assert.equal(looksPersonal(s), false, s);
+});
+
+test('정부24 밖 사이트는 제목 글·창 안내 글을 보내지 않고, 정부24는 보낸다', () => {
+  const page = { title: '신청인 정보 조회', headings: ['증명서 발급'], popupText: '확인하세요' };
+  const a = cleanGuidePayload({ page: { ...page, path: 'www.hometax.go.kr/x' }, candidates: [], pressed: [] });
+  assert.deepEqual(a.page.headings, []);
+  assert.equal(a.page.popupText, '');
+  assert.equal(a.page.title, '신청인 정보 조회', '화면 제목은 보낸다');
+  const b = cleanGuidePayload({ page: { ...page, path: 'www.gov.kr/mw/x' }, candidates: [], pressed: [] });
+  assert.deepEqual(b.page.headings, ['증명서 발급']);
+  assert.equal(b.page.popupText, '확인하세요');
 });

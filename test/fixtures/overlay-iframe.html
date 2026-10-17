@@ -1,0 +1,10 @@
+<!doctype html>
+<!-- 시험용 가짜 화면: 떠 있는 창 안이 iframe이다. 길잡이는 안을 못 읽으므로 서버에 묻지 않고 안내만 한다. -->
+<html lang="ko"><head><meta charset="utf-8"><title>인증 창 시험 | 시험 화면</title>
+<style>body{font:16px/1.6 sans-serif;padding:24px}
+.veil{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10}
+.modal{position:fixed;left:15%;top:15%;width:70%;height:70%;background:#fff;z-index:11}
+.modal iframe{width:100%;height:100%;border:0}</style></head>
+<body><main><h2>뒤쪽 화면</h2><button type="button">간편인증 카드</button></main>
+<div class="veil"></div>
+<div class="modal"><iframe srcdoc="<button>창 안의 버튼</button>"></iframe></div></body></html>

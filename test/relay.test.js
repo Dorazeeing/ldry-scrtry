@@ -93,9 +93,20 @@ test('중계: 경로 속 세션 값은 버리고, 정부24가 아닌 사이트�
   seen.length = 0;
   await post(base, '/v1/guide/next', { ...guideBody, page: { ...guideBody.page, path: 'www.gov.kr/mw/AA040.do;jsessionid=SECRET' } });
   assert.equal(seen[0].body.state.page.address, 'www.gov.kr/mw/AA040.do');
-  const r = await post(base, '/v1/guide/next', { ...guideBody, page: { path: 'www.hometax.go.kr/x' } });
+  const r = await post(base, '/v1/guide/next', { ...guideBody, page: { path: 'evil.example/x' } });
   assert.equal(r.status, 403);
   assert.equal((await r.json()).error.code, 'forbidden_site');
+  // 기관 사이트(D-9)는 받는다. 정부24 밖이라 화면 속 글(제목 글·창 안내 글)은 서버가 버린다
+  seen.length = 0;
+  const ok2 = await post(base, '/v1/guide/next', {
+    ...guideBody,
+    page: { path: 'efamily.scourt.go.kr/pt/PtFrrpApplrInfoInqW.do', title: '신청인 정보 조회', headings: ['증명서 발급'], popupText: '확인하세요' },
+  });
+  assert.equal(ok2.status, 200);
+  assert.equal(seen[0].body.state.page.address, 'efamily.scourt.go.kr/pt/PtFrrpApplrInfoInqW.do');
+  assert.deepEqual(seen[0].body.state.page.headings, []);
+  assert.equal(seen[0].body.state.page.popupText, undefined);
+  assert.match(seen[0].body.state.site, /대법원 전자가족관계등록시스템/);
 });
 
 test('중계: 목록에 없는 goalId·모양이 틀린 본문', async () => {
