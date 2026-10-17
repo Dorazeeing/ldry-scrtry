@@ -34,7 +34,7 @@ Jev 판단을 고칠 때는 TypeSafe 스킬(`typesafe:typesafe-ai`)을 따르고
 | 게시자 이름 | **아직 계정 이메일 그대로** → 대시보드 Settings에서 팀 이름으로 바꾼다. "정부24"·"행정안전부"처럼 공식 기관으로 보이는 이름 금지 |
 | 2단계 인증 | 확인 필요 (꺼져 있으면 게시·업데이트 불가) |
 | 확장 한도 | 0/2. 공식 기준은 "게시된(published) 확장". 피드 지킴이(`../slop-detector`)와 같은 게시자라 2자리를 함께 쓴다. 초안이 한도에 들어가는지는 미확인 → 첫 초안을 올린 뒤 대시보드 숫자로 확인 |
-| 웹스토어 항목 | 아직 없음. 초안에 zip을 올리면 설치 가능 여부를 미리 검사해 주고(제출 전 설치 시험), 확장 ID가 정해진다 |
+| 웹스토어 항목 | **있음.** 항목 ID `poicbfndbnffkpkmmkmhmnehpbmemnif`, 버전 0.1.0. 1차 제출(2026-10-17)은 **거절**: "Spam and Placement in the Store / Yellow Argon — 설명에 과도한 키워드(기관 이름 12개 나열)". 설명에서 기관 이름을 모두 빼고 같은 날 재제출 → **Pending review**. 한도 1/2 (확장 자리가 하나 남음). ID는 서버 `ALLOWED_ORIGIN`에 등록 완료 |
 | Railway 중계 | **배포됨 (2026-10-17).** 프로젝트 `ldry-scrtry` → 서비스 `relay`, 주소 `https://relay-production-4d72.up.railway.app`, **Free 요금제**. 변수 5개 등록(키는 stdin으로, Seal 안 함 — 계정 사용자가 1명뿐이라 사용자 결정). `ALLOWED_ORIGIN`은 지금 로컬 로드 ID(`chrome-extension://dclhjkjaojhjghdlngjnajlecndamgaa`, 폴더 경로로 계산)만 → 스토어 ID가 나오면 쉼표로 추가. 실제 정부24 화면 4개를 중계로 보내 4/4 정답 |
 | GitHub | https://github.com/Dorazeeing/ldry-scrtry (**비공개**로 바꿈, 사용자). 웹스토어·Railway는 공개 저장소를 요구하지 않는다(Railway는 CLI 업로드). 처리방침 페이지를 GitHub Pages로 올릴 수 없다 → 다른 곳(예: Vercel)에 둔다. 동의 문구·처리방침에 "코드를 공개한다"고 쓰지 않는다 |
 
