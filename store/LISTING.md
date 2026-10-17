@@ -45,7 +45,7 @@
 ■ 꼭 알아 두세요
 - AI가 틀릴 수 있어요. 누르기 전에 눈으로 꼭 확인해 주세요.
 - 화면의 버튼·칸 이름, 화면 제목, 쪽 주소(쿼리 제외), 적거나 말한 서류 이름이 서버를 거쳐 AI 서비스(TypeSafe)로 전해져요. 서버는 내용을 저장하지 않아요. 자세한 내용은 개인정보 처리방침을 봐 주세요.
-- 문의: [연락 이메일]
+- 문의: [연락 이메일] (넣지 않아도 됨. 넣을 때만)
 ```
 
 ## 3. 개인정보 탭 (Privacy practices)
@@ -69,6 +69,27 @@
 | 사용자 활동 | 예 | 앞서 누른 버튼 이름 8개까지, 사용자가 적은 서류 이름 |
 | 개인 식별 정보 | 아니오 | 칸에 적은 값은 읽지 않고, 숫자 6개 이상·이메일·"○○님"·주소 모양 글자는 버린다. **다만 이름만 있는 글자는 걸러내지 못할 수 있다 → 이 항목은 정직하게 "예"로 하는 편이 안전한지 판단 필요** |
 | 건강·금융·인증 정보 | 아니오 | 건강보험·홈택스 화면에서도 버튼·칸 **이름**만 보내고, 화면 속 글(제목 글·창 안내 글)은 보내지 않는다 |
+
+
+### 3-1. 대시보드에 입력하는 영어 문구 (심사자용, 각 1,000자 이하)
+
+**single_purpose** (357자)
+```
+Help people use the Korean government portal Gov24 (gov.kr) and a small set of government document-issuing sites to get a document issued, by showing a large red outline around the next button the user should press for the document they chose. The extension only points. It never clicks, types or submits anything for the user, and it does not handle login.
+```
+
+**storage** (259자)
+```
+Stores, on the user's device only: which document the user is being guided to get, the names of the buttons already pressed (up to 8), whether the user accepted the in-extension consent notice, and whether the guide panel is collapsed. Nothing else is stored.
+```
+
+**host** (692자)
+```
+1) https://relay-production-4d72.up.railway.app (our own server): after the user consents, the extension sends button/field names, the page title and the URL path (no query string) so the server can choose which button to highlight. Typed values are never read or sent.
+2) Content script on gov.kr and plus.gov.kr (Gov24) and on the document-issuing sites Gov24 hands users over to: efamily.scourt.go.kr, car365.go.kr, eais.go.kr, nip.kdca.go.kr, hometax.go.kr, efine.go.kr, nhis.or.kr, wetax.go.kr, pmp.mpva.go.kr, realtyprice.kr, e-health.go.kr, 4insure.or.kr. It reads the names and positions of buttons, links and fields to draw the outline. It does not run anywhere else (no <all_urls>).
+```
+
+- **Remote code:** "No, I am not using remote code" (모든 코드가 패키지 안에 있음. AI 서비스의 답은 코드가 아니라 선택한 항목 이름)
 
 - **인증:** 사용자 데이터를 판매하지 않음 / 단일 목적과 관계없는 용도로 쓰지 않음 / 신용·대출 판단에 쓰지 않음 — 모두 해당 (체크)
 - **개인정보 처리방침 URL:** [공개 주소]
