@@ -7,7 +7,9 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFil
 import { createRequire } from 'node:module';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { RELAY_URL } from '../src/lib/relay.js';
 import { NONE_OPTION, looksPersonal } from '../src/lib/sanitize.js';
+import { createRelay } from '../server/relay.js';
 
 process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = '1'; // service worker의 fetch도 가로채기
 const root = new URL('..', import.meta.url).pathname;
@@ -65,24 +67,55 @@ const context = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir()
   viewport: { width: 1400, height: 900 },
   args: [`--disable-extensions-except=${root}`, `--load-extension=${root}`],
 });
-await context.route('https://api.typesafe.ai/**', async (route) => {
-  const body = route.request().postDataJSON();
-  requests.push(body);
-  await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockAnswer(body)) });
+// 실제 중계 서버 코드(server/relay.js)를 이 시험 안에서 띄우고, 가짜 TypeSafe(mockAnswer)를 붙인다.
+// 확장의 요청은 운영 중계 주소로 나가지만 여기서 가로채 로컬 중계로 보낸다 → 운영 서버·Jev를 부르지 않는다.
+const relayRequests = []; // 확장이 중계로 보낸 본문
+let relayHits = 0;
+const typesafeCalls = []; // 브라우저에서 TypeSafe로 직접 나간 요청 (0이어야 한다)
+const allowedOrigins = []; // 확장 ID를 안 뒤에 채운다
+const relay = createRelay({
+  apiKey: 'smoke-fake-key',
+  allowedOrigins,
+  fetchImpl: async (url, init) => {
+    const body = JSON.parse(init.body);
+    requests.push(body); // Jev로 가는 본문 (서버가 만든 것)
+    return { ok: true, status: 200, json: async () => mockAnswer(body) };
+  },
+  log: () => {},
+});
+await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+const relayPort = relay.address().port;
+context.on('request', (r) => {
+  if (r.url().includes('typesafe.ai')) typesafeCalls.push(r.url());
+});
+await context.route(`${RELAY_URL}/**`, async (route) => {
+  const req = route.request();
+  relayHits += 1;
+  if (req.method() === 'POST') relayRequests.push(req.postDataJSON());
+  const headers = { ...req.headers() };
+  delete headers.host;
+  const upstream = await fetch(`http://127.0.0.1:${relayPort}${new URL(req.url()).pathname}`, {
+    method: req.method(),
+    headers,
+    body: req.method() === 'POST' ? req.postData() : undefined,
+  });
+  await route.fulfill({ status: upstream.status, contentType: 'application/json', body: await upstream.text() });
 });
 
 const sw = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
 const extId = new URL(sw.url()).host;
+allowedOrigins.push(`chrome-extension://${extId}`);
 const summary = { steps: [], checks: [] };
 const check = (name, ok, detail = '') => summary.checks.push({ name, ok: Boolean(ok), detail });
 
-// 1. 설정 창에서 키 저장 + 연결 확인
+// 1. 설정 창: 키 입력 칸이 없고, 서버 연결 확인이 되고, 처음에는 동의 전
 const popup = await context.newPage();
 await popup.goto(`chrome-extension://${extId}/src/popup.html`);
-await popup.fill('#key', 'mock-key-for-smoke');
-await popup.click('#save');
-await popup.waitForSelector('#keyState.ok', { timeout: 10000 }).catch(() => {});
-check('설정 창: 연결 확인', (await popup.textContent('#keyState')) === '연결됐어요.');
+check('설정 창: 키 입력 칸 없음', (await popup.locator('input').count()) === 0);
+await popup.click('#test');
+await popup.waitForSelector('#relayState.ok', { timeout: 10000 }).catch(() => {});
+check('설정 창: 서버 연결 확인', (await popup.textContent('#relayState')) === '연결됐어요.', await popup.textContent('#relayState'));
+check('설정 창: 처음에는 동의 전', (await popup.textContent('#consentState')).includes('동의하지 않았어요'));
 await popup.screenshot({ path: join(OUT, '0-popup.png'), fullPage: true });
 
 const page = await context.newPage();
@@ -131,7 +164,21 @@ const INFO = 'https://www.gov.kr/mw/AA020InfoCappView.do?HighCtgCD=A01010001&Cap
 
 // 2. 시작 화면: 쉬운 말로 적기 → 목록에서 찾기 → 고르기
 await page.goto(INFO, { waitUntil: 'domcontentloaded' });
+// 동의 화면: 동의하기 전에는 중계로 아무것도 보내지 않는다
+await shadow('[data-act="consent"]').waitFor({ timeout: 20000 });
+await page.waitForTimeout(1500);
+const hitsBefore = relayHits;
+check('동의 전: 서버로 아무것도 안 보냄 (연결 확인 제외)', requests.length === 0 && relayRequests.length === 0, `Jev ${requests.length}건, 중계 본문 ${relayRequests.length}건`);
+check('동의 화면에 서버·AI·말하기·틀릴 수 있음 안내', await shadow('.consent').evaluate((e) => ['서버(싱가포르)', 'TypeSafe', '말로 하기', '틀릴 수 있어요'].every((w) => e.innerText.includes(w))));
+await page.screenshot({ path: join(OUT, '1-consent.png') });
+await shadow('[data-act="decline"]').click();
+const declined = await shadow('.msg').textContent();
+check('동의하지 않으면 켜지지 않음', declined.includes('동의하지 않으셨어서') && (await shadow('#gvrnmnt24-query').isHidden()), declined);
+await shadow('.goals button').first().click();
+await shadow('[data-act="consent"]').waitFor({ timeout: 5000 });
+await shadow('[data-act="consent"]').click();
 await shadow('#gvrnmnt24-query').waitFor({ timeout: 20000 });
+check('동의 뒤에야 검색 칸이 나옴', true);
 await page.screenshot({ path: join(OUT, '1-start.png') });
 
 // 2-1. 개인정보처럼 보이는 말은 보내지 않는다
@@ -277,6 +324,19 @@ check(
 );
 check('주소에 쿼리 없음', asks.every((b) => !b.state.page.address.includes('?')));
 
+// 중계로 가는 본문은 정해진 필드뿐이어야 한다. 확장은 TypeSafe를 직접 부르지 않는다.
+const guideBodies = relayRequests.filter((b) => b.goalId);
+check(
+  '중계로 보낸 본문 필드가 정해진 것뿐',
+  guideBodies.length > 0 &&
+    guideBodies.every((b) => JSON.stringify(Object.keys(b).sort()) === '["candidates","goalId","page","pressed"]') &&
+    relayRequests.filter((b) => b.query !== undefined).every((b) => JSON.stringify(Object.keys(b)) === '["query"]'),
+  JSON.stringify([...new Set(relayRequests.map((b) => Object.keys(b).sort().join('+')))]),
+);
+check('확장이 TypeSafe를 직접 부르지 않음 (키는 서버에만)', typesafeCalls.length === 0, typesafeCalls.join(', '));
+check('중계 요청에 쿼리·세션 값 없는 주소', guideBodies.every((b) => !b.page.path.includes('?') && !b.page.path.includes(';')));
+
+relay.close();
 await context.close();
 writeFileSync(join(OUT, 'summary.json'), JSON.stringify(summary, null, 2));
 console.log(JSON.stringify(summary, null, 2));

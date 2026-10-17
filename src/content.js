@@ -95,6 +95,10 @@
       .pill { position: fixed; right: 16px; bottom: 16px; display: none; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); }
       .collapsed .panel { display: none; }
       .collapsed .pill { display: block; }
+      .consent { display: flex; flex-direction: column; gap: 12px; }
+      .consent[hidden] { display: none; }
+      .consent ul { margin: 0; padding-left: 24px; font-size: 20px; }
+      .consent li { margin-bottom: 8px; }
       .goal-line { font-size: 20px; color: #1d3faf; font-weight: 700; }
       .goal-line:empty { display: none; }
       .find { display: flex; flex-direction: column; gap: 12px; }
@@ -114,6 +118,18 @@
         <p class="goal-line"></p>
         <p class="stage"></p>
         <p class="msg" aria-live="polite"></p>
+        <div class="consent" hidden>
+          <ul>
+            <li>길잡이는 지금 보시는 화면의 <b>버튼과 칸 이름, 쪽 주소</b>를 서버(싱가포르)로 보내요.</li>
+            <li>서버는 이것을 AI(미국 TypeSafe 회사)에게 물어서 다음에 누를 곳을 알려 드려요. TypeSafe는 보낸 내용을 AI 학습에 쓰지 않는다고 밝히고 있어요.</li>
+            <li>칸에 <b>적은 내용</b>(이름·주민번호 등)은 읽지도 보내지도 않아요. 개인정보로 보이는 글자는 빼고 보내요.</li>
+            <li>찾는 서류를 <b>적거나 말하면</b> 그 말도 서버로 가요. 「말로 하기」는 소리를 크롬(구글)이 글자로 바꿔 줘요.</li>
+            <li>서버는 보낸 내용을 저장하지 않아요. 서버 운영 회사(Railway)에는 접속 기록(주소·IP 등)이 일정 기간 남아요.</li>
+            <li>AI가 틀릴 수 있어요. 누르기 전에 꼭 눈으로 확인해 주세요.</li>
+          </ul>
+          <button type="button" class="primary" data-act="consent">동의하고 시작하기</button>
+          <button type="button" data-act="decline">동의하지 않아요</button>
+        </div>
         <div class="find" hidden>
           <label for="gvrnmnt24-query">떼고 싶은 서류나 하고 싶은 일을 쉬운 말로 적어 주세요.</label>
           <input id="gvrnmnt24-query" type="text" autocomplete="off" placeholder="예) 이사 다닌 기록이 나오는 서류">
@@ -131,7 +147,7 @@
           </div>
           <button type="button" data-act="stop">안내 끝내기</button>
         </div>
-        <p class="note">길잡이는 알려 주기만 해요. 누르고 적는 것은 직접 해 주세요.</p>
+        <p class="note">길잡이는 알려 주기만 해요. 누르고 적는 것은 직접 해 주세요. AI가 틀릴 수 있으니 눈으로 꼭 확인해 주세요.</p>
       </section>
       <button type="button" class="pill primary" data-act="expand">민원 길잡이 열기</button>
     </div>`;
@@ -140,6 +156,7 @@
     marks: root.querySelector('.marks'),
     panel: root.querySelector('.panel'),
     goalLine: root.querySelector('.goal-line'),
+    consent: root.querySelector('.consent'),
     find: root.querySelector('.find'),
     query: root.querySelector('#gvrnmnt24-query'),
     listen: root.querySelector('[data-act="listen"]'),
@@ -153,11 +170,6 @@
   document.documentElement.appendChild(host);
 
   const ERROR_TEXT = {
-    no_key: '아직 준비가 안 됐어요. 가족이나 정부24 고객센터(1588-2188)에 물어봐 주세요.',
-    auth: '길잡이 설정에 문제가 있어요. 가족이나 정부24 고객센터(1588-2188)에 물어봐 주세요.',
-    credit: '길잡이 사용량이 다 됐어요. 가족이나 정부24 고객센터(1588-2188)에 물어봐 주세요.',
-    rate: '지금 길잡이를 쓰는 사람이 많아요. 잠시 뒤 「다시 찾기」를 눌러 주세요.',
-    overloaded: '지금 길잡이를 쓰는 사람이 많아요. 잠시 뒤 「다시 찾기」를 눌러 주세요.',
     timeout: '대답이 늦어지고 있어요. 「다시 찾기」를 눌러 주세요.',
     network: '인터넷 연결을 확인한 뒤 「다시 찾기」를 눌러 주세요.',
     extension: '길잡이가 새로 설치됐어요. 화면을 새로고침해 주세요.',
@@ -188,11 +200,16 @@
     clearTarget();
     ui.goals.replaceChildren();
     ui.list.hidden = true;
-    if (!state?.hasKey) {
+    // 동의하기 전에는 아무것도 서버로 보내지 않는다
+    if (!state?.consented) {
       ui.find.hidden = true;
-      show({ msg: ERROR_TEXT.no_key, guiding: false });
+      ui.consent.hidden = false;
+      show({ msg: '처음 쓰시기 전에 알려 드려요.', guiding: false });
+      // 「소리로 듣기」가 동의 문구 전체를 읽도록 한다
+      spoken = [ui.msg.textContent, ...[...ui.consent.querySelectorAll('li')].map((li) => li.textContent)].join(' ');
       return;
     }
+    ui.consent.hidden = true;
     ui.find.hidden = false;
     ui.listen.hidden = !SpeechRec;
     show({ msg: '무엇을 하러 오셨어요?', guiding: false });
@@ -218,13 +235,38 @@
     spoken = [msg, ...items.map((it) => it.name)].join(' ');
   }
 
+  function needConsent() {
+    state = { ...state, consented: false, active: false };
+    renderStart();
+  }
+
+  async function acceptConsent() {
+    const next = await send({ type: 'consent/accept' });
+    if (next?.kind === 'error') return apply(next);
+    state = next;
+    renderStart();
+  }
+
+  function declineConsent() {
+    ui.consent.hidden = true;
+    ui.goals.replaceChildren();
+    const again = document.createElement('button');
+    again.type = 'button';
+    again.className = 'primary';
+    again.textContent = '동의 내용 다시 보기';
+    again.addEventListener('click', renderStart);
+    ui.goals.append(again);
+    show({ msg: '동의하지 않으셨어서 길잡이를 켜지 않았어요. 마음이 바뀌시면 아래 버튼을 눌러 주세요.', guiding: false });
+  }
+
   async function search() {
     ui.goals.replaceChildren();
     show({ msg: '목록에서 찾고 있어요…', guiding: false });
     const res = await send({ type: 'catalog/search', query: ui.query.value });
     ui.list.hidden = false;
+    if (res?.kind === 'error' && res.code === 'no_consent') return needConsent();
     if (res?.kind !== 'results') {
-      show({ msg: ERROR_TEXT[res?.code] ?? '잠깐 문제가 생겼어요. 다시 찾아 주세요.', guiding: false });
+      show({ msg: res?.message ?? ERROR_TEXT[res?.code] ?? '잠깐 문제가 생겼어요. 다시 찾아 주세요.', guiding: false });
       return;
     }
     if (res.missing) {
@@ -603,7 +645,8 @@
     }
     clearTarget();
     if (res.kind === 'error') {
-      show({ msg: ERROR_TEXT[res.code] ?? '잠깐 문제가 생겼어요. 「다시 찾기」를 눌러 주세요.' });
+      if (res.code === 'no_consent') return needConsent();
+      show({ msg: res.message ?? ERROR_TEXT[res.code] ?? '잠깐 문제가 생겼어요. 「다시 찾기」를 눌러 주세요.' });
       return;
     }
     show({ stage: res.stageText, msg: '어디를 눌러야 할지 잘 모르겠어요. 가족이나 정부24 고객센터(1588-2188)에 물어봐 주세요.' });
@@ -724,6 +767,8 @@
     if (act === 'rescan') scan('manual');
     if (act === 'stop') stop();
     if (act === 'search') search();
+    if (act === 'consent') acceptConsent();
+    if (act === 'decline') declineConsent();
     if (act === 'listen') listen();
     if (act === 'list') showList();
     if (act === 'collapse' || act === 'expand') {

@@ -8,7 +8,7 @@
     "storage"
   ],
   "host_permissions": [
-    "https://api.typesafe.ai/*"
+    "https://relay-production-4d72.up.railway.app/*"
   ],
   "background": {
     "service_worker": "src/background.js",

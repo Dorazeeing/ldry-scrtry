@@ -99,3 +99,21 @@ export function cleanCandidates(raw) {
   }
   return { candidates: out, dropped };
 }
+
+export const MAX_PATH = 200;
+
+// 화면 정보를 밖으로 보내기 전에 거른다. 확장은 서버로 보내기 전에, 중계 서버는 받은 뒤에 같은 규칙으로 다시 한다.
+// 주소가 "호스트+경로"이고 정부24인지는 호출하는 쪽(guide.js)이 확인한다.
+export function cleanGuidePayload({ page, candidates, pressed }) {
+  const list = focusPopup(cleanCandidates(Array.isArray(candidates) ? candidates.slice(0, 400) : []).candidates);
+  return {
+    page: {
+      title: cleanText(page?.title, 80),
+      path: stripSession(page?.path).slice(0, MAX_PATH),
+      headings: cleanHeadings(page?.headings),
+      popupText: cleanText(page?.popupText, MAX_POPUP_TEXT),
+    },
+    candidates: list,
+    pressed: cleanPressed(pressed),
+  };
+}

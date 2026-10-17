@@ -12,7 +12,7 @@ Jev 판단을 고칠 때는 TypeSafe 스킬(`typesafe:typesafe-ai`)을 따르고
 | 안내 목표는 `catalog.js` 목록 항목으로만 만든다. 어르신이 적은 말을 목표 문장에 넣지 않는다 (검색에만 쓴다) | 서류 이름을 모르는 어르신이 적은 말은 틀릴 수 있다. 사용자 결정 (2026-10-17) |
 | 약관 「선택」·「전체 동의」·「동의하지 않음」은 후보에서 뺀다. 「필수」만 표시한다 | 사용자 결정 (2026-10-17) |
 | 직접 클릭·입력·제출하지 않는다 | 되돌리기 어렵고 공공 사이트 자동화는 약관 문제 |
-| 키는 background에만. `storage`는 `TRUSTED_CONTEXTS`로 잠근다. 지금의 키 입력(강사용)은 **개발·시험용**이고, 공개판은 키 없이 Railway 중계로만 Jev를 부른다 (아래 「중계 서버」) | content는 페이지와 DOM을 공유 |
+| **확장에는 TypeSafe 키가 없다.** Jev는 Railway 중계로만 부른다 (아래 「중계 서버」). `storage`(안내 상태·동의)는 `TRUSTED_CONTEXTS`로 잠근다. 동의하기 전에는 중계로 아무것도 보내지 않는다 | content는 페이지와 DOM을 공유. 웹스토어 Disclosure 정책 |
 | **우리 TypeSafe 키를 확장 코드·패키지·기본 설정값에 넣지 않는다** (암호화·숨기기도 안 됨) | 공개 확장은 누구나 내려받아 열어 볼 수 있고, 웹스토어 정책상 난독화 금지("must not obfuscate code"). 요청 헤더에도 키가 보인다. TypeSafe 계약서(MCA) §2.4: 키 비밀 유지·공유 금지 |
 | 중계는 **이 확장 전용 엔드포인트만** 연다. 질문과 목표 문장은 서버가 만들고, 확장은 `goalId`와 걸러진 화면 정보만 보낸다 | MCA §2.3(a): 서비스를 남에게 제공·재배포 금지 → 아무 Jev 요청이나 대신 보내는 범용 중계는 안 됨. 주소가 새도 다른 용도로 못 씀 |
 | 웹스토어 항목(item)은 **하나만** 만들고 새 버전으로 갱신한다. 삭제했다가 새로 올리지 않는다 | 다시 올리면 확장 ID가 바뀌어 중계의 `ALLOWED_ORIGIN`과 사용자 업데이트가 끊기고, 처음부터 재심사. 게시 한도 2개를 피드 지킴이와 함께 쓴다 |
@@ -34,7 +34,7 @@ Jev 판단을 고칠 때는 TypeSafe 스킬(`typesafe:typesafe-ai`)을 따르고
 | 확장 한도 | 0/2. 공식 기준은 "게시된(published) 확장". 피드 지킴이(`../slop-detector`)와 같은 게시자라 2자리를 함께 쓴다. 초안이 한도에 들어가는지는 미확인 → 첫 초안을 올린 뒤 대시보드 숫자로 확인 |
 | 웹스토어 항목 | 아직 없음. 초안에 zip을 올리면 설치 가능 여부를 미리 검사해 주고(제출 전 설치 시험), 확장 ID가 정해진다 |
 | Railway 중계 | **배포됨 (2026-10-17).** 프로젝트 `ldry-scrtry` → 서비스 `relay`, 주소 `https://relay-production-4d72.up.railway.app`, **Free 요금제**. 변수 5개 등록(키는 stdin으로, Seal 안 함 — 계정 사용자가 1명뿐이라 사용자 결정). `ALLOWED_ORIGIN`은 지금 로컬 로드 ID(`chrome-extension://dclhjkjaojhjghdlngjnajlecndamgaa`, 폴더 경로로 계산)만 → 스토어 ID가 나오면 쉼표로 추가. 실제 정부24 화면 4개를 중계로 보내 4/4 정답 |
-| GitHub | https://github.com/Dorazeeing/ldry-scrtry (공개). 2026-10-17 첫 커밋 `5b1a5f6` (`main`) |
+| GitHub | https://github.com/Dorazeeing/ldry-scrtry (**비공개**로 바꿈, 사용자). 웹스토어·Railway는 공개 저장소를 요구하지 않는다(Railway는 CLI 업로드). 처리방침 페이지를 GitHub Pages로 올릴 수 없다 → 다른 곳(예: Vercel)에 둔다. 동의 문구·처리방침에 "코드를 공개한다"고 쓰지 않는다 |
 
 ## 중계 서버 (Railway) — 구현됨, 배포 전
 
@@ -75,19 +75,20 @@ background.js ──goalId + 걸러진 화면 정보──▶ Railway 중계 (�
 | 비용 상한 | Usage에서 강제 상한 (최소 $10, 넘으면 서비스가 꺼짐) |
 | 요금 | **Free 요금제($0, 매달 사용량 $1어치 무료)로 시작.** 서비스당 RAM 0.5GB·1 vCPU 제한. 새 계정은 Trial $5(1회)를 먼저 쓴다. 중계는 로컬에서 RSS 약 67MB → RAM만 월 약 $0.66(GB당 월 $10) + CPU 조금 → **$1 안쪽이지만 빠듯함.** 넘으면 Hobby(월 $5, 사용량 $5 포함)로 올린다 ([공식](https://docs.railway.com/pricing/plans), 2026-10-17 확인). Jev는 1회 약 $0.00013 (`DAILY_CAP=5000`이면 하루 최대 약 $0.65, TypeSafe 쪽 비용) |
 
-**확장 쪽 변경 (중계로 바꿀 때)**
-- `manifest.json` `host_permissions`: `https://api.typesafe.ai/*` → 중계 주소. `scripts/check.mjs`의 권한 검사도 함께 고친다.
-- `background.js`: `callJev` 대신 중계로 `fetch`, 키 저장·확인 코드 삭제("연결 확인"은 `/health`).
-- `popup.*`: 키 입력 칸 삭제.
+**확장 쪽 변경 — 2026-10-17 완료**
+- `manifest.json` `host_permissions`는 중계 주소 하나뿐. 주소는 `src/lib/relay.js` `RELAY_URL` 한 곳이고 `npm run check`가 둘이 같은지, typesafe.ai 권한이 없는지 검사한다.
+- `background.js`: 키 코드 삭제. `callRelay`(502·연결 실패는 1.5초 뒤 한 번만 다시). 중계가 안 되면 민원 찾기는 이 컴퓨터에서 글자 맞추기로 대신한다. 화면 거르기(`cleanGuidePayload`)는 확장이 보내기 전에, 서버가 받은 뒤에 같은 코드로 두 번 한다.
+- 첫 사용 **동의 화면**(`content.js`, 문구를 바꾸면 `CONSENT_VERSION`을 올림): 무엇이 어디로 가는지(서버 싱가포르 → TypeSafe 미국), 말로 하기(크롬·구글), 접속 기록(Railway), AI가 틀릴 수 있음. 동의 전에는 서버 0건 (자동 시험으로 확인). 설정 창에서 동의 취소 가능.
+- `popup.*`: 키 입력 칸 삭제 → 서버 연결 확인, 동의 취소.
 - 확장 ID: 로컬 로드 ID와 스토어 ID가 다르다. 웹스토어에 **초안으로 먼저 올려 ID를 받고** `ALLOWED_ORIGIN`에 넣는다 (개발 중에는 매니페스트 `key`로 ID 고정 가능).
 
-**확인한 것 (2026-10-17, 로컬):** 실제 Jev로 다음 버튼 184ms·민원 찾기 296ms, Origin 없는 요청은 403.
+**확인한 것 (2026-10-17):** 실제 Jev로 다음 버튼 184ms·민원 찾기 296ms, Origin 없는 요청은 403. 자동 시험(smoke 30개)은 **실제 중계 코드**를 띄워 확장 요청을 그쪽으로 보내 Origin 확인까지 통과. 폴더 경로로 계산한 확장 ID(`dclhjk…`)는 Railway `ALLOWED_ORIGIN`과 같음 — 실제 Chrome에서의 호출은 사람이 확인.
 **확인 안 된 것:** Railway가 `X-Real-IP`를 덮어써 주는지(안 덮어쓰면 분당 한도를 헤더로 속일 수 있음), Railway를 거친 지연, service worker에서 `host_permissions`만으로 CORS 없이 호출되는지, Railway 실제 월 비용, TypeSafe 호출 한도. MCA 조항은 요약 발췌라 원문(https://typesafe.ai/legal/mca) 확인 필요.
 
 ## 공개 배포 전 해야 할 것
 
 - [x] **이름:** `ldry-scrtry` (D-8). 매니페스트 설명에 "비공식, 정부24·행정안전부와 관계없음" 표기. 스토어 설명 첫 줄에도 같은 문구를 쓰고 정부 로고는 쓰지 않는다. 웹스토어 정책: "don't represent that your product is authorized by, endorsed by, or produced by another company or organization"
-- [ ] **설치 전 고지와 동의:** 무엇을 보내는지 알리고, 동의 전에는 아무것도 보내지 않는다 (웹스토어 Disclosure 정책: "prior to installation", "affirmative and informed consent")
+- [x] **설치 전 고지와 동의:** 정부24 화면의 첫 사용 동의 화면으로 구현 (동의 전 서버 0건). 웹스토어 정책의 "prior to installation"은 스토어 설명·Privacy 탭에도 같은 내용을 적어야 충족 → 아래 처리방침 항목과 함께
 - [ ] **개인정보 처리방침 URL:** 확장 → 중계(싱가포르) → TypeSafe, 내용 저장 안 함, 접속 기록 7일, TypeSafe는 학습에 안 씀
 - [ ] **Privacy 탭:** 단일 목적, 권한별 사유, 원격 코드 "없음"(Jev 답은 데이터), 데이터 항목(Website content, Web browsing activity 등), Limited Use 준수
 - [ ] **아이콘:** `manifest.json`에 `icons` 16·48·128 추가. 스토어 이미지(128 아이콘, 440×280, 스크린샷 1280×800 — 개인정보 없는 화면)

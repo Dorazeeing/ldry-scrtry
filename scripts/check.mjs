@@ -34,7 +34,11 @@ for (const f of referenced) if (!existsSync(join(root, f))) problems.push(`매�
 // 사이트 권한은 src/lib/sites.js 목록(정부24 + 공지에 나온 기관 사이트)과 TypeSafe 주소뿐이어야 한다
 const { MATCHES } = await import('../src/lib/sites.js');
 const hosts = [...(manifest.host_permissions ?? []), ...(manifest.content_scripts ?? []).flatMap((c) => c.matches)];
-const allowedHosts = ['https://api.typesafe.ai/*', ...MATCHES];
+const { RELAY_URL } = await import('../src/lib/relay.js');
+const allowedHosts = [`${RELAY_URL}/*`, ...MATCHES];
+// 확장에서 TypeSafe를 직접 부르지 않는다 (키는 중계 서버에만)
+if ((manifest.host_permissions ?? []).some((h) => h.includes('typesafe.ai'))) problems.push('확장이 typesafe.ai 권한을 가지면 안 된다 (중계로만)');
+if (JSON.stringify(manifest.host_permissions) !== JSON.stringify([`${RELAY_URL}/*`])) problems.push('manifest host_permissions가 src/lib/relay.js RELAY_URL과 다르다');
 for (const h of hosts) if (!allowedHosts.includes(h)) problems.push(`허용 목록 밖의 사이트 권한: ${h}`);
 const contentMatches = (manifest.content_scripts ?? []).flatMap((c) => c.matches);
 if (JSON.stringify(contentMatches) !== JSON.stringify(MATCHES)) problems.push('manifest content_scripts.matches가 src/lib/sites.js MATCHES와 다르다');

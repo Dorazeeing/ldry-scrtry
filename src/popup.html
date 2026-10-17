@@ -7,18 +7,19 @@
 </head>
 <body>
   <h1>ldry-scrtry 설정</h1>
-  <p class="who">강사·관리자용 화면이에요.</p>
+  <p class="who">정부24·행정안전부와 관계없는 비공식 길잡이예요.</p>
 
   <section>
-    <h2>TypeSafe 키</h2>
-    <p id="keyState" aria-live="polite">확인 중…</p>
-    <label for="key">키 넣기</label>
-    <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="TypeSafe 콘솔에서 받은 키">
-    <div class="row">
-      <button type="button" id="save" class="primary">저장하고 연결 확인</button>
-      <button type="button" id="clear">키 지우기</button>
-    </div>
-    <p class="hint">키는 이 컴퓨터의 확장 저장소에만 둬요. 정부24 화면 쪽 코드는 키를 볼 수 없어요.</p>
+    <h2>서버 연결</h2>
+    <p id="relayState" aria-live="polite">아래 버튼으로 확인해 보세요.</p>
+    <button type="button" id="test" class="primary">연결 확인</button>
+    <p class="hint">길잡이는 화면의 버튼·칸 이름을 서버(싱가포르)로 보내 다음에 누를 곳을 물어봐요. 키는 서버에만 있고 이 확장에는 없어요.</p>
+  </section>
+
+  <section>
+    <h2>동의</h2>
+    <p id="consentState" aria-live="polite">확인 중…</p>
+    <button type="button" id="revoke">동의 취소하기</button>
   </section>
 
   <section>

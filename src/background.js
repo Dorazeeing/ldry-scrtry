@@ -1,17 +1,18 @@
-// 신뢰 영역. TypeSafe 키 보관, 안내 상태 보관, Jev 호출을 모두 여기서만 한다.
-// 페이지 쪽(content.js)은 키를 볼 수 없다: storage 접근을 TRUSTED_CONTEXTS로 막는다.
+// 신뢰 영역. 안내 상태·동의 보관, 중계 서버 호출을 여기서만 한다. 확장에는 TypeSafe 키가 없다 (키는 중계 서버에만).
+// 페이지 쪽(content.js)은 storage를 못 본다: storage 접근을 TRUSTED_CONTEXTS로 막는다.
+// 동의하기 전에는 아무것도 밖으로 보내지 않는다 (웹스토어 Disclosure 정책).
 
-import { CATALOG, DEFAULT_GOAL_ID, findService, goalFor, publicItem } from './lib/catalog.js';
-import { finishGuide, prepareGuide, searchCatalog } from './lib/guide.js';
-import { JevError, RUBRIC_VERSION, callJev, decide } from './lib/jev.js';
-import { MAX_LABEL, MAX_PRESSED, cleanPath, cleanText } from './lib/sanitize.js';
+import { CATALOG, DEFAULT_GOAL_ID, cleanQuery, findService, goalFor, publicItem } from './lib/catalog.js';
+import { searchCatalog } from './lib/guide.js';
+import { CONSENT_VERSION, RelayError, callRelay } from './lib/relay.js';
+import { MAX_LABEL, MAX_PRESSED, cleanGuidePayload, cleanPath, cleanText } from './lib/sanitize.js';
 import { ALLOWED_HOSTS } from './lib/sites.js';
 
 const CACHE_MAX = 200;
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const LOG_MAX = 20;
 
-const cache = new Map(); // 해시 → { at, decision }
+const cache = new Map(); // 해시 → { at, result }  (service worker가 꺼지면 사라짐)
 
 let ready;
 function ensureReady() {
@@ -34,9 +35,9 @@ async function setGuide(patch) {
   return next;
 }
 
-async function getKey() {
-  const { apiKey } = await chrome.storage.local.get('apiKey');
-  return typeof apiKey === 'string' ? apiKey : '';
+async function hasConsent() {
+  const { consent } = await chrome.storage.local.get('consent');
+  return consent?.version === CONSENT_VERSION;
 }
 
 async function log(entry) {
@@ -71,73 +72,71 @@ async function publicState() {
     active: guide.active,
     goalId: guide.goalId,
     goalTitle: goalFor(guide.goalId).title,
-    hasKey: Boolean(await getKey()),
+    consented: await hasConsent(),
   };
 }
 
+const NO_CONSENT = { kind: 'error', code: 'no_consent' };
+
+function relayFailure(err) {
+  if (err instanceof RelayError) return { kind: 'error', code: err.code, message: err.userMessage };
+  return { kind: 'error', code: 'server' };
+}
+
 async function ask(msg, sender) {
+  if (!(await hasConsent())) return NO_CONSENT;
   const guide = await getGuide();
   if (!guide.active) return { kind: 'inactive' };
   // 주소는 페이지가 보낸 값이 아니라 크롬이 알려 준 sender.url을 쓴다
-  const prep = prepareGuide({
-    goalId: guide.goalId,
+  const clean = cleanGuidePayload({
     page: { ...msg.page, path: cleanPath(sender.url) },
     candidates: msg.candidates,
     pressed: guide.pressed,
   });
-  if (prep.error) return { kind: 'error', code: prep.error };
-  if (prep.result) return prep.result;
-  const { body, candidates } = prep;
-  const hash = await sha256(JSON.stringify({ v: RUBRIC_VERSION, goalId: guide.goalId, body }));
+  if (clean.candidates.length === 0) return { kind: 'unsure', reason: 'no_candidates', stage: null, stageText: '' };
+
+  const payload = { goalId: guide.goalId, ...clean };
+  const hash = await sha256(JSON.stringify(payload));
   const hit = cache.get(hash);
-  let decision;
-  let latencyMs = 0;
-  if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
-    decision = hit.decision;
-  } else {
-    const started = Date.now();
-    try {
-      const response = await callJev(await getKey(), body);
-      decision = decide(response, candidates);
-      latencyMs = Date.now() - started;
-      cache.set(hash, { at: Date.now(), decision });
-      if (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value);
-      await log({ path: body.state.page.address, candidates: candidates.length, latencyMs, usage: response?.usage, ...decision.raw });
-    } catch (err) {
-      const code = err instanceof JevError ? err.code : 'server';
-      await log({ path: body.state.page.address, error: code, status: err?.status });
-      return { kind: 'error', code };
-    }
-  }
-  return { ...finishGuide(decision, candidates), latencyMs };
-}
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return { ...hit.result, latencyMs: 0 };
 
-// 어르신이 적은 말 → 목록에서 고를 후보 몇 개. Jev가 안 되면 글자 맞추기로 찾는다.
-async function search(text) {
-  const key = await getKey();
   const started = Date.now();
-  const out = await searchCatalog(text, key ? (body) => callJev(key, body) : null);
-  if (out.error) return { kind: 'error', code: out.error };
-  const { meta, result } = out;
-  await log(
-    meta.error
-      ? { path: 'search', error: meta.error }
-      : { path: 'search', choice: meta.choice, results: result.items.length, latencyMs: Date.now() - started, usage: meta.usage },
-  );
-  return result;
+  try {
+    const result = await callRelay('/v1/guide/next', payload);
+    const latencyMs = Date.now() - started;
+    cache.set(hash, { at: Date.now(), result });
+    if (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value);
+    await log({ path: clean.page.path, candidates: clean.candidates.length, latencyMs, kind: result.kind, label: result.label, stage: result.stage });
+    return { ...result, latencyMs };
+  } catch (err) {
+    await log({ path: clean.page.path, error: err?.code ?? 'server', status: err?.status });
+    return relayFailure(err);
+  }
 }
 
-async function testKey(key) {
-  const body = {
-    model: 'jev-latest',
-    state: '연결 확인',
-    questions: { ping: { type: 'noul', instructions: 'Is this text written in Korean?' } },
-  };
+// 어르신이 적은 말 → 목록에서 고를 후보. 중계가 안 되면 이 컴퓨터에서 글자 맞추기로 찾는다 (밖으로 아무것도 안 나감).
+async function search(text) {
+  if (!(await hasConsent())) return NO_CONSENT;
+  const { query, error } = cleanQuery(text);
+  if (error) return { kind: 'error', code: error };
+  const started = Date.now();
   try {
-    const res = await callJev(key, body);
-    return { ok: res?.answers?.ping?.type === 'noul' };
+    const result = await callRelay('/v1/catalog/search', { query });
+    await log({ path: 'search', choice: result.items?.[0]?.name, results: result.items?.length ?? 0, latencyMs: Date.now() - started, source: result.source });
+    return result;
   } catch (err) {
-    return { ok: false, code: err instanceof JevError ? err.code : 'server' };
+    if (err instanceof RelayError && ['personal', 'empty', 'bad_request'].includes(err.code)) return relayFailure(err);
+    await log({ path: 'search', error: err?.code ?? 'server', status: err?.status });
+    return (await searchCatalog(query, null)).result;
+  }
+}
+
+async function checkRelay() {
+  try {
+    const res = await callRelay('/health');
+    return { ok: res?.ok === true, enabled: res?.enabled !== false };
+  } catch (err) {
+    return { ok: false, code: err?.code ?? 'server' };
   }
 }
 
@@ -150,6 +149,16 @@ async function handle(msg, sender) {
   switch (msg?.type) {
     case 'guide/state':
       return publicState();
+    case 'consent/accept':
+      if (!page) break;
+      await chrome.storage.local.set({ consent: { version: CONSENT_VERSION, at: Date.now() } });
+      return publicState();
+    case 'consent/revoke':
+      if (!popup) break;
+      await chrome.storage.local.remove('consent');
+      await setGuide({ active: false, pressed: [] });
+      cache.clear();
+      return publicState();
     case 'catalog/search':
       if (!page) break;
       return search(msg.query);
@@ -158,8 +167,8 @@ async function handle(msg, sender) {
     case 'guide/start': {
       // 목록에 있는 id만 받는다 (어르신이 적은 말은 목표가 되지 않는다)
       if (!findService(msg.goalId)) return { kind: 'error', code: 'unknown_goal' };
-      const goalId = msg.goalId;
-      await setGuide({ active: true, goalId, pressed: [] });
+      if (!(await hasConsent())) return NO_CONSENT;
+      await setGuide({ active: true, goalId: msg.goalId, pressed: [] });
       return publicState();
     }
     case 'guide/stop':
@@ -183,18 +192,9 @@ async function handle(msg, sender) {
       const guide = await getGuide();
       return { ...(await publicState()), pressed: guide.pressed, decisions };
     }
-    case 'key/save':
+    case 'relay/test':
       if (!popup) break;
-      await chrome.storage.local.set({ apiKey: String(msg.key ?? '').trim() });
-      cache.clear();
-      return publicState();
-    case 'key/clear':
-      if (!popup) break;
-      await chrome.storage.local.remove('apiKey');
-      return publicState();
-    case 'key/test':
-      if (!popup) break;
-      return testKey(await getKey());
+      return checkRelay();
     case 'log/clear':
       if (!popup) break;
       cache.clear();

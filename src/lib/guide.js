@@ -5,20 +5,11 @@
 import { findService, goalFor, buildSearchRequest, cleanQuery, localSearch, namedButMissing, pickServices, publicItem, MAX_RESULTS } from './catalog.js';
 import { STAGE_TEXT } from './goals.js';
 import { buildRequest, decide } from './jev.js';
-import {
-  MAX_POPUP_TEXT,
-  cleanCandidates,
-  cleanHeadings,
-  cleanPressed,
-  cleanText,
-  focusPopup,
-  stripSession,
-} from './sanitize.js';
+import { cleanGuidePayload } from './sanitize.js';
 import { ALLOWED_HOSTS, siteFor } from './sites.js';
 
 // "www.gov.kr/mw/AA020InfoCappView.do" 모양만 받는다 (쿼리·조각 없음). 호스트는 길잡이가 뜨는 사이트여야 한다.
 const PATH_SHAPE = /^([a-z0-9.-]+)(\/[^\s?#]*)?$/;
-const MAX_PATH = 200;
 
 export function hostOf(path) {
   const m = PATH_SHAPE.exec(String(path ?? ''));
@@ -28,25 +19,18 @@ export function hostOf(path) {
 // 요청 → Jev 요청 본문. 문제가 있으면 { error }, Jev에 물을 필요가 없으면 { result }.
 export function prepareGuide({ goalId, page, candidates, pressed }) {
   if (!findService(goalId)) return { error: 'unknown_goal' };
-  const path = stripSession(page?.path).slice(0, MAX_PATH);
-  const host = hostOf(path);
+  const clean = cleanGuidePayload({ page, candidates, pressed });
+  const host = hostOf(clean.page.path);
   if (!ALLOWED_HOSTS.has(host)) return { error: 'forbidden_site' };
-  const cleanPage = {
-    title: cleanText(page?.title, 80),
-    path,
-    headings: cleanHeadings(page?.headings),
-    popupText: cleanText(page?.popupText, MAX_POPUP_TEXT),
-  };
-  const list = focusPopup(cleanCandidates(Array.isArray(candidates) ? candidates.slice(0, 400) : []).candidates);
-  if (list.length === 0) return { result: { kind: 'unsure', reason: 'no_candidates', stage: null, stageText: '' } };
+  if (clean.candidates.length === 0) return { result: { kind: 'unsure', reason: 'no_candidates', stage: null, stageText: '' } };
   const body = buildRequest({
     goal: goalFor(goalId),
-    page: cleanPage,
-    candidates: list,
-    pressed: cleanPressed(pressed),
+    page: clean.page,
+    candidates: clean.candidates,
+    pressed: clean.pressed,
     site: siteFor(host)?.name ?? '정부24',
   });
-  return { body, candidates: list };
+  return { body, candidates: clean.candidates };
 }
 
 // 판단 결과를 화면에 쓸 모양으로. 캐시된 판단이면 이번 후보 목록의 id로 다시 잇는다.
