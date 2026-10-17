@@ -92,7 +92,7 @@ Stores, on the user's device only: which document the user is being guided to ge
 - **Remote code:** "No, I am not using remote code" (모든 코드가 패키지 안에 있음. AI 서비스의 답은 코드가 아니라 선택한 항목 이름)
 
 - **인증:** 사용자 데이터를 판매하지 않음 / 단일 목적과 관계없는 용도로 쓰지 않음 / 신용·대출 판단에 쓰지 않음 — 모두 해당 (체크)
-- **개인정보 처리방침 URL:** [공개 주소]
+- **개인정보 처리방침 URL:** https://ldry-scrtry-privacy.vercel.app/
 
 ## 4. 배포
 

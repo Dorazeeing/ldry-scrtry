@@ -91,7 +91,7 @@ background.js ──goalId + 걸러진 화면 정보──▶ Railway 중계 (�
 
 - [x] **이름:** `ldry-scrtry` (D-8). 매니페스트 설명에 "비공식, 정부24·행정안전부와 관계없음" 표기. 스토어 설명 첫 줄에도 같은 문구를 쓰고 정부 로고는 쓰지 않는다. 웹스토어 정책: "don't represent that your product is authorized by, endorsed by, or produced by another company or organization"
 - [x] **설치 전 고지와 동의:** 정부24 화면의 첫 사용 동의 화면으로 구현 (동의 전 서버 0건). 웹스토어 정책의 "prior to installation"은 스토어 설명·Privacy 탭에도 같은 내용을 적어야 충족 → 아래 처리방침 항목과 함께
-- [ ] **개인정보 처리방침 URL:** 초안 `store/privacy/index.html` 완료. **[팀 이름]·[연락 이메일]·[시행일]·[Railway 접속 기록 보관 기간]을 채우고 공개 주소(Vercel 등)에 올려야 한다.** 법률 검토는 하지 않았다
+- [x] **개인정보 처리방침 URL:** https://ldry-scrtry-privacy.vercel.app/ (Vercel 프로젝트 `ldry-scrtry-privacy`, 팀 계정 `dorazeeing's projects`, 로그인 없이 열림, 2026-10-17 게시). 운영자 이름은 임시로 "ldry-scrtry 개발팀"(팀 이름 미정), 문의 dorazeeing@gmail.com, 접속 기록 보관 3일(Railway 무료 요금제, 공식 문서). **내용을 고치면 `store/privacy/index.html`을 고쳐 같은 프로젝트에 다시 배포한다.** 법률 검토는 하지 않았다
 - [ ] **Privacy 탭:** 단일 목적, 권한별 사유, 원격 코드 "없음"(Jev 답은 데이터), 데이터 항목(Website content, Web browsing activity 등), Limited Use 준수
 - [x] **아이콘·스토어 이미지:** `icons/`(16·48·128·홍보 440×280, `node scripts/icons.mjs`), `store/screenshots/`(1280×800 JPEG 4장, `VIEWPORT=1280x800 SMOKE_OUT=store/raw npm run smoke`로 다시 만든 뒤 변환). 제출 자료 전체는 `store/LISTING.md`
 - [x] **`sanitize.js` 보완 (일부):** 주소 모양(○○시 ○○구, ○○로 12, ○○동 123번지)을 거르고, 정부24 밖에서는 제목 글·창 안내 글을 아예 보내지 않는다. **이름만 있는 글자는 아직 못 거른다** (정부24의 제목 글·창 안내 글에 나올 수 있음) → 개인정보 탭의 "개인 식별 정보" 답 판단 필요
