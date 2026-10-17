@@ -33,8 +33,8 @@ Jev 판단을 고칠 때는 TypeSafe 스킬(`typesafe:typesafe-ai`)을 따르고
 | 2단계 인증 | 확인 필요 (꺼져 있으면 게시·업데이트 불가) |
 | 확장 한도 | 0/2. 공식 기준은 "게시된(published) 확장". 피드 지킴이(`../slop-detector`)와 같은 게시자라 2자리를 함께 쓴다. 초안이 한도에 들어가는지는 미확인 → 첫 초안을 올린 뒤 대시보드 숫자로 확인 |
 | 웹스토어 항목 | 아직 없음. 초안에 zip을 올리면 설치 가능 여부를 미리 검사해 주고(제출 전 설치 시험), 확장 ID가 정해진다 |
-| Railway 중계 | **구현·로컬 시험 완료** (`server/relay.js`, 실제 Jev로 확인). Railway 배포·키 등록은 아직 |
-| GitHub | 저장소 https://github.com/Dorazeeing/ldry-scrtry (공개). 아직 올리지 않음 |
+| Railway 중계 | **배포됨 (2026-10-17).** 프로젝트 `ldry-scrtry` → 서비스 `relay`, 주소 `https://relay-production-4d72.up.railway.app`, **Free 요금제**. 변수 5개 등록(키는 stdin으로, Seal 안 함 — 계정 사용자가 1명뿐이라 사용자 결정). `ALLOWED_ORIGIN`은 지금 로컬 로드 ID(`chrome-extension://dclhjkjaojhjghdlngjnajlecndamgaa`, 폴더 경로로 계산)만 → 스토어 ID가 나오면 쉼표로 추가. 실제 정부24 화면 4개를 중계로 보내 4/4 정답 |
+| GitHub | https://github.com/Dorazeeing/ldry-scrtry (공개). 2026-10-17 첫 커밋 `5b1a5f6` (`main`) |
 
 ## 중계 서버 (Railway) — 구현됨, 배포 전
 
@@ -66,14 +66,14 @@ background.js ──goalId + 걸러진 화면 정보──▶ Railway 중계 (�
 
 | 항목 | 값 |
 |---|---|
-| 배포 | `cd gvrnmnt24-detector && railway up` (git 저장소가 아니라 CLI 업로드. `.gitignore`를 따른다. CLI는 설치돼 있음) |
+| 배포 | `railway up -s relay --ci` (CLI 업로드, `.gitignore`를 따른다). 설정은 `railway.json`(시작 명령·`/health`·재시작). Config as Code는 2026-12-01까지 동작(그 뒤 `railway config migrate`) |
 | Variables | `TYPESAFE_API_KEY`(넣은 뒤 **Seal**), `ALLOWED_ORIGIN`, `DAILY_CAP`, `PER_IP_PER_MIN`, `RELAY_ENABLED`. 바꾼 뒤 Deploy를 눌러야 반영 |
-| Region | Southeast Asia (싱가포르) — `../AGENTS.md` §6과 같음 |
+| Region | 지금 Southeast Asia (싱가포르). `railway scale -s relay southeast-asia=1` 로 정한다 (`railway.json`에 넣으면 Free 기본값이 이겨 US West로 갔음). **측정:** 싱가포르는 이 PC에서 총 0.9~1.1초(서버 안 90~220ms), US West는 0.4초 → TypeSafe가 미국 쪽이라 생기는 왕복으로 추정. 리전은 사용자 결정 대기 |
 | 주소 | Settings → Networking → Generate Domain (HTTPS 자동) |
 | Healthcheck | `/health` |
-| Serverless(잠자기) | **끈다.** 깨어날 때 첫 요청이 느리거나 502 |
+| Serverless(잠자기) | **Free 요금제에서는 켜져 있다** (`sleepApplication=true`, 직접 켜지 않았음). 5~10분 통신이 없으면 잠들고, 깨어나는 첫 요청이 느리거나 502일 수 있다 → 확장을 중계로 바꿀 때 502·연결 실패면 1~2초 뒤 한 번 더 보낸다 |
 | 비용 상한 | Usage에서 강제 상한 (최소 $10, 넘으면 서비스가 꺼짐) |
-| 요금 | Hobby 월 $5(사용량 $5 포함) 권장. Jev는 1회 약 $0.00013 (`DAILY_CAP=5000`이면 하루 최대 약 $0.65) |
+| 요금 | **Free 요금제($0, 매달 사용량 $1어치 무료)로 시작.** 서비스당 RAM 0.5GB·1 vCPU 제한. 새 계정은 Trial $5(1회)를 먼저 쓴다. 중계는 로컬에서 RSS 약 67MB → RAM만 월 약 $0.66(GB당 월 $10) + CPU 조금 → **$1 안쪽이지만 빠듯함.** 넘으면 Hobby(월 $5, 사용량 $5 포함)로 올린다 ([공식](https://docs.railway.com/pricing/plans), 2026-10-17 확인). Jev는 1회 약 $0.00013 (`DAILY_CAP=5000`이면 하루 최대 약 $0.65, TypeSafe 쪽 비용) |
 
 **확장 쪽 변경 (중계로 바꿀 때)**
 - `manifest.json` `host_permissions`: `https://api.typesafe.ai/*` → 중계 주소. `scripts/check.mjs`의 권한 검사도 함께 고친다.
