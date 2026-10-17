@@ -4,6 +4,7 @@
 
 import { CATALOG, DEFAULT_GOAL_ID, cleanQuery, findService, goalFor, publicItem } from './lib/catalog.js';
 import { searchCatalog } from './lib/guide.js';
+import { HANDOFF_RESULT, detectHandoff, withoutLoginControls } from './lib/handoff.js';
 import { CONSENT_VERSION, RelayError, callRelay } from './lib/relay.js';
 import { MAX_LABEL, MAX_PRESSED, cleanGuidePayload, cleanPath, cleanText } from './lib/sanitize.js';
 import { ALLOWED_HOSTS } from './lib/sites.js';
@@ -94,6 +95,9 @@ async function ask(msg, sender) {
     candidates: msg.candidates,
     pressed: guide.pressed,
   });
+  // 로그인 방법을 고르는 화면은 사용자가 직접 한다: 서버에 묻지 않는다 (서버도 같은 규칙으로 한 번 더 한다)
+  if (detectHandoff(clean.candidates)) return { ...HANDOFF_RESULT };
+  clean.candidates = withoutLoginControls(clean.candidates); // 로그인·회원가입·인증 버튼은 보내지 않는다
   if (clean.candidates.length === 0) return { kind: 'unsure', reason: 'no_candidates', stage: null, stageText: '' };
 
   const payload = { goalId: guide.goalId, ...clean };

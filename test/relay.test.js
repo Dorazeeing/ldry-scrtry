@@ -204,3 +204,28 @@ test('중계: Jev가 찾았으면 글자 맞추기 결과를 덧붙이지 않는
   const res = await r.json();
   assert.deepEqual(res.items.map((i) => i.id), ['resident_abstract', 'resident_copy']);
 });
+
+test('중계: 로그인 방법을 고르는 화면은 Jev에 묻지 않고 넘긴다 (직접 고르게)', async () => {
+  seen.length = 0;
+  const res = await post(base, '/v1/guide/next', {
+    ...guideBody,
+    page: { path: 'plus.gov.kr/login/', title: '로그인' },
+    candidates: [
+      { id: 0, label: '간편인증', kind: 'button', area: 'main' },
+      { id: 1, label: '공동인증서', kind: 'button', area: 'main' },
+      { id: 2, label: '금융인증서', kind: 'button', area: 'main' },
+    ],
+  });
+  assert.equal(res.status, 200);
+  assert.equal((await res.json()).kind, 'handoff');
+  assert.equal(seen.length, 0, 'Jev를 부르지 않는다');
+});
+
+test('중계: 로그인·회원가입 버튼은 Jev 후보에서 뺀다', async () => {
+  seen.length = 0;
+  await post(base, '/v1/guide/next', guideBody);
+  const options = Object.keys(seen[0].body.questions.nextControl.criteria);
+  assert.ok(options.includes('발급하기'));
+  assert.ok(!options.includes('로그인'), '로그인은 후보에 없다');
+  assert.match(JSON.stringify(seen[0].body.questions.nextControl.instructions), /handles login/);
+});

@@ -19,7 +19,7 @@ const OUT = process.env.SMOKE_OUT ? join(root, process.env.SMOKE_OUT) : join(roo
 mkdirSync(OUT, { recursive: true });
 
 // 가짜 Jev: 아는 이름이 후보에 있으면 고르고, 없으면 "해당 없음"
-const PICK_ORDER = ['회원 신청하기', '간편인증', '주민등록등본(초본)', '주민등록표 등본(초본)', '발급하기', '다음'];
+const PICK_ORDER = ['주민등록등본(초본)', '주민등록표 등본(초본)', '발급하기', '다음'];
 function mockAnswer(body) {
   if (body.questions.ping) return { model: 'mock', answers: { ping: { type: 'noul', noul: 0.99 } }, usage: {} };
   if (body.questions.service) {
@@ -204,6 +204,8 @@ check(
   firstAsk?.state.goal.includes('주민등록표 초본') && !JSON.stringify(firstAsk.state).includes('이사 다닌 기록 나오는'),
 );
 check('민원안내: 발급하기를 가리킴', info.ringShown && info.msg.includes('발급하기'), info.msg);
+const infoKeys = Object.keys(requests.slice(since).find((b) => b.questions?.nextControl)?.questions.nextControl.criteria ?? {});
+check('로그인·회원가입 버튼은 후보에서 빠짐 (서류를 먼저 찾아가게)', infoKeys.length > 0 && !infoKeys.some((k) => /로그인|회원가입/.test(k)), infoKeys.filter((k) => /로그인|회원가입/.test(k)).join(', '));
 // 안내 창 자리: 가릴 때만 옮긴다. 「발급하기」는 오른쪽 아래(기본 자리)에 있어 창이 왼쪽으로 가야 하고, 옮긴 뒤에는 가리지 않아야 한다
 const cover = () =>
   page.evaluate(() => {
@@ -226,17 +228,21 @@ check('테두리가 가리키는 버튼을 감쌈 (위치)', onTarget);
 const infoPanel = await cover();
 check('안내 창: 가리는 경우에만 옮김 (민원안내 → 왼쪽, 가리지 않음)', infoPanel.left && !infoPanel.hit, JSON.stringify(infoPanel));
 
-// 3. 가리킨 곳을 실제로 누른다 → 떠 있는 창의 "회원 신청하기"로 옮겨 가야 하고, 누른 기록이 다음 질문에 들어가야 한다
+// 3. 가리킨 곳을 실제로 누른다 → 회원/비회원 창이 뜨면 테두리를 끄고 직접 고르게 안내해야 하고, 누른 기록은 남아야 한다 (D-10)
 since = requests.length;
 await page.getByRole('link', { name: '발급하기', exact: true }).first().click();
 const after = await settle('3-popup', { since });
-check('누른 기록이 다음 질문에 들어감', (after.alreadyPressed ?? []).includes('발급하기'), JSON.stringify(after.alreadyPressed));
-check('떠 있는 창: 회원 신청하기를 가리킴', after.ringShown && after.msg.includes('회원 신청하기'), after.msg);
+check(
+  '회원/비회원 창: 테두리 없이 직접 고르게 안내, 서버에 안 물음',
+  !after.ringShown && after.msg.includes('직접 골라 주세요') && after.requestsSent === 0,
+  `테두리 ${after.ringShown ? '있음' : '없음'}, 요청 ${after.requestsSent}건: ${after.msg}`,
+);
 
 // 4. 같은 화면·같은 기록이면 캐시로 답한다: 한 번 다시 열어 묻게 한 뒤, 또 열면 새 요청이 없어야 한다
 since = requests.length;
 await page.goto(INFO, { waitUntil: 'domcontentloaded' });
-await settle('4-reopen', { since });
+const reopen = await settle('4-reopen', { since });
+check('누른 기록이 다음 질문에 들어감 (회원/비회원 창 단계는 서버에 안 물으므로 다음 요청에서 확인)', (reopen.alreadyPressed ?? []).includes('발급하기'), JSON.stringify(reopen.alreadyPressed));
 since = requests.length;
 await page.goto(INFO, { waitUntil: 'domcontentloaded' });
 const again = await settle('5-cache', { since, until: () => false, maxWaitMs: 5000 });
@@ -260,8 +266,8 @@ check(
 );
 
 // 5-2. 창이 화면을 덮을 때 (2026-10-17 정부24 로그인: 인증 창이 떴는데 가려진 「간편인증」 카드에 테두리가 남았다)
-async function fake(name, file) {
-  const url = `https://www.gov.kr/__gvrnmnt24_test__/${file}`;
+async function fake(name, file, host = 'www.gov.kr') {
+  const url = `https://${host}/__gvrnmnt24_test__/${file}`;
   await context.route(url, (route) =>
     route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: readFileSync(join(root, 'test/fixtures', file), 'utf8') }),
   );
@@ -270,6 +276,14 @@ async function fake(name, file) {
   await page.waitForTimeout(3500);
   return { before, asks: requests.slice(before).filter((b) => b.questions?.nextControl), msg: await shadow('.msg').textContent(), rings: await shadow('.ring').count() };
 }
+// 5-1b. 어느 사이트에서든 같다: 기관 사이트(홈택스 주소)의 로그인 방법 고르기도 직접 고르게 넘긴다
+const loginFake = await fake('login', 'login-methods.html', 'www.hometax.go.kr');
+check(
+  '기관 사이트(홈택스)에서도 로그인 방법 화면은 직접 고르게 안내, 테두리·서버 요청 없음',
+  loginFake.rings === 0 && loginFake.asks.length === 0 && loginFake.msg.includes('직접 골라 주세요'),
+  `테두리 ${loginFake.rings}개, 요청 ${loginFake.asks.length}건: ${loginFake.msg}`,
+);
+await page.screenshot({ path: join(OUT, '5-login-fake.png') });
 const domOverlay = await fake('dom', 'overlay-dom.html');
 const domKeys = Object.keys(domOverlay.asks.at(-1)?.questions.nextControl.criteria ?? {});
 check('창(DOM)이 덮으면 뒤의 버튼은 후보에서 빠지고 창 안 버튼만 남음', domKeys.includes('인증서 선택하기') && !domKeys.some((k) => /뒤$/.test(k)), domKeys.join(', '));

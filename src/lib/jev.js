@@ -7,14 +7,13 @@ import { NONE_OPTION } from './sanitize.js';
 export const ENDPOINT = 'https://api.typesafe.ai/v1/systemone';
 export const MODEL = 'jev-latest';
 // 질문 문구·형식을 바꾸면 올린다 (캐시 무효화)
-export const RUBRIC_VERSION = 5;
+export const RUBRIC_VERSION = 6;
 // 고른 후보의 확률이 이 값보다 낮으면 강조하지 않는다.
 // confidence(분포가 한 곳에 몰린 정도)가 아니라 확률을 쓰는 이유: "회원 신청하기"(0.41)·"비회원 신청하기"(0.30)처럼
 // 맞는 길이 둘이면 confidence가 0.2대로 떨어진다. 2026-10-17 시험 24건에서 0.35는 맞은 것을 모두 보여 주고 틀린 것을 모두 걸렀다 (README).
 export const MIN_PROBABILITY = 0.35;
 export const TIMEOUT_MS = 15000;
 export const MAX_RETRIES = 2;
-const AUTH_CONTROL = /(공동|금융|모바일)\s*인증서|간편\s*인증|모바일\s*신분증|인증서\s*로그인/;
 
 const KIND_TEXT = {
   button: 'button',
@@ -67,7 +66,7 @@ export function buildRequest({ goal, page, candidates, pressed, site = '정부24
             'Consider `userSituation`, the current `page`, and `alreadyPressed` (controls the user used earlier, oldest first).',
             'If a pop-up window is open on top of the page (its text is `page.popupText`), pick the control in it that continues toward the goal.',
             'Prefer controls in the main content of this page over site-wide header, footer or menu links, unless the goal can only be reached through the menu.',
-            'If the page asks the user to choose an authentication or login method (such as 공동인증서, 금융인증서 or 간편인증), pick the method described in `userSituation`.',
+            'The user handles login, sign-up, member or non-member choices and identity authentication on their own, so such controls are not listed. First reach the page of the service in `goal`: use a link to it, or the site search field (to be filled with the service name); start an application only from that service page.',
             'On a form, fields already filled in and options already selected are done. Pick an empty field only if this user must fill it; skip optional settings (such as a security-keyboard option) and fields meant for other kinds of users (such as foreigner ID fields for a Korean citizen). Once the needed fields are done, pick the control that submits or continues.',
             'Do not pick controls that log out, cancel, go back, close the page, or start a different service.',
             'On a terms or consent page, agree only to required (필수) items; never pick optional (선택) consents or "agree to all".',
@@ -148,8 +147,5 @@ export function decide(response, candidates) {
   if (probability < MIN_PROBABILITY) return { kind: 'unsure', reason: 'low_probability', stage, raw };
   const pick = candidates.find((c) => c.label === next.choice);
   if (!pick) return { kind: 'unsure', reason: 'unknown_option', stage, raw };
-  // 다음에 누를 곳이 인증 방법 버튼이면 본인 확인 화면이다 (코드 규칙).
-  // 2026-10-17: 이름·주민번호 칸이 있는 전자가족관계 본인확인 화면을 Jev가 계속 "신청서 작성"으로 봤다.
-  const shownStage = AUTH_CONTROL.test(pick.label) ? '로그인' : stage;
-  return { kind: 'point', id: pick.id, label: pick.label, targetKind: pick.kind, stage: shownStage, raw };
+  return { kind: 'point', id: pick.id, label: pick.label, targetKind: pick.kind, stage, raw };
 }

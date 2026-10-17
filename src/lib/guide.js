@@ -5,6 +5,7 @@
 import { findService, goalFor, buildSearchRequest, cleanQuery, localSearch, namedButMissing, pickServices, publicItem, MAX_RESULTS } from './catalog.js';
 import { STAGE_TEXT } from './goals.js';
 import { buildRequest, decide } from './jev.js';
+import { HANDOFF_RESULT, detectHandoff, withoutLoginControls } from './handoff.js';
 import { cleanGuidePayload } from './sanitize.js';
 import { ALLOWED_HOSTS, siteFor } from './sites.js';
 
@@ -22,15 +23,19 @@ export function prepareGuide({ goalId, page, candidates, pressed }) {
   const clean = cleanGuidePayload({ page, candidates, pressed });
   const host = hostOf(clean.page.path);
   if (!ALLOWED_HOSTS.has(host)) return { error: 'forbidden_site' };
-  if (clean.candidates.length === 0) return { result: { kind: 'unsure', reason: 'no_candidates', stage: null, stageText: '' } };
+  // 로그인 방법을 고르는 화면은 사용자가 직접 한다: 서버에 묻지 않고 넘긴다
+  if (detectHandoff(clean.candidates)) return { result: { ...HANDOFF_RESULT } };
+  // 로그인·회원가입·인증 버튼은 후보에서 뺀다 (AI가 "로그인부터"를 고르지 못하게)
+  const list = withoutLoginControls(clean.candidates);
+  if (list.length === 0) return { result: { kind: 'unsure', reason: 'no_candidates', stage: null, stageText: '' } };
   const body = buildRequest({
     goal: goalFor(goalId),
     page: clean.page,
-    candidates: clean.candidates,
+    candidates: list,
     pressed: clean.pressed,
     site: siteFor(host)?.name ?? '정부24',
   });
-  return { body, candidates: clean.candidates };
+  return { body, candidates: list };
 }
 
 // 판단 결과를 화면에 쓸 모양으로. 캐시된 판단이면 이번 후보 목록의 id로 다시 잇는다.

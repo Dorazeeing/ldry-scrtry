@@ -87,7 +87,7 @@ export function goalFor(id) {
     title: c.name,
     goal: `Use 정부24 to get "${c.name}" (${c.plain}) through the 정부24 service "${c.service}", and if it issues a document, print it on this computer.${c.formNote ? ` ${c.formNote}` : ''}${siteNote(c)}`,
     userSituation:
-      'An older Korean citizen who is not used to computers. They log in and prove identity with mobile simple authentication (간편인증, e.g. KakaoTalk or Naver).',
+      'An older Korean citizen who is not used to computers. The guide never handles login or identity verification: the user does those on their own.',
   };
 }
 

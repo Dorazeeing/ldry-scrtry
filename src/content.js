@@ -182,6 +182,9 @@
   // 인증 창처럼 떠 있는 iframe 안은 읽을 수 없다. 창 안에서 흔히 하는 순서를 고정 문구로 알려 준다 (서버로 보내지 않는다).
   const FRAME_HELP =
     '창이 열렸어요. 창 안은 길잡이가 볼 수 없어요. 창에 적힌 대로 직접 해 주세요. 보통은 ① 쓰는 인증 앱 고르기 ② 이름·생년월일·휴대폰 번호 적기 ③ 「필수」 동의에 체크 ④ 「인증 요청」 누르기예요.';
+  // 로그인·회원/비회원·인증 방법 고르기는 사용자가 직접 한다 (테두리를 끄고 안내만, D-10)
+  const HANDOFF_TEXT =
+    '여기서부터는 직접 골라 주세요. 회원·비회원, 간편인증, 인증서 중에서 편한 방법을 고르시면 돼요. 로그인이 끝나면 길잡이가 다시 이어서 알려 드려요.';
   const ACTION_TEXT = {
     button: (l) => `「${l}」 버튼을 누르세요.`,
     link: (l) => `「${l}」 글자를 누르세요.`,
@@ -681,10 +684,18 @@
       renderStart();
       return;
     }
+    if (res.kind === 'handoff') {
+      clearTarget();
+      show({ stage: res.stageText, msg: HANDOFF_TEXT });
+      return;
+    }
     if (res.kind === 'point') {
       const els = elements.get(res.id);
       if (els && shown(els)) {
-        show({ stage: res.stageText, msg: `${ACTION_TEXT[res.targetKind](res.label)} 빨간 테두리로 표시했어요.` });
+        // 사이트 검색 칸이면 무엇을 적을지 알려 준다 (먼저 찾는 서류 페이지로 가야 하므로)
+        const searchBox = res.targetKind === 'input' && /검색|무엇을|알고 싶|찾/.test(res.label) && state?.goalTitle;
+        const what = searchBox ? `검색 칸에 「${state.goalTitle}」라고 적고 검색해 주세요.` : ACTION_TEXT[res.targetKind](res.label);
+        show({ stage: res.stageText, msg: `${what} 빨간 테두리로 표시했어요.` });
         pointTo([{ els, tag: '여기를 누르세요' }]);
         return;
       }

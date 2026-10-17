@@ -5,9 +5,9 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { buildSearchRequest, goalFor, pickServices } from '../src/lib/catalog.js';
-import { MIN_PROBABILITY, buildRequest, callJev, decide } from '../src/lib/jev.js';
-import { cleanCandidates, focusPopup } from '../src/lib/sanitize.js';
+import { buildSearchRequest, pickServices } from '../src/lib/catalog.js';
+import { MIN_PROBABILITY, callJev, decide } from '../src/lib/jev.js';
+import { prepareGuide } from '../src/lib/guide.js';
 
 const key = process.env.TYPESAFE_API_KEY;
 if (!key) {
@@ -58,9 +58,19 @@ if (MODE !== 'pages') {
 const rows = [];
 for (const p of MODE === 'search' ? [] : pages) {
   for (let round = 0; round < ROUNDS; round += 1) {
-    // background.js와 같은 순서로 거른다
-    const candidates = focusPopup(cleanCandidates(order(p.candidates, round).map((c, id) => ({ ...c, id }))).candidates);
-    const body = buildRequest({ goal: goalFor(p.goalId ?? 'resident_abstract'), page: p.page, candidates, pressed: p.pressed, site: p.site });
+    // 운영과 같은 경로(중계 서버의 prepareGuide)로 거른다: 로그인 방법을 고르는 화면은 넘기고, 로그인 버튼은 후보에서 뺀다
+    const prep = prepareGuide({
+      goalId: p.goalId ?? 'resident_abstract',
+      page: p.page,
+      candidates: order(p.candidates, round).map((c, id) => ({ ...c, id })),
+      pressed: p.pressed,
+    });
+    if (prep.result) {
+      // Jev를 부르지 않는 경우 (넘김). 정답은 expectedHandoff
+      rows.push({ page: p.name, round, choice: prep.result.kind, probability: 1, confidence: 1, correct: Boolean(p.expectedHandoff) && prep.result.kind === 'handoff', shown: false, stage: prep.result.stage, stageCorrect: true, top3: [], ms: 0, inputTokens: 0, handoff: true });
+      continue;
+    }
+    const { body, candidates } = prep;
     const started = performance.now();
     try {
       const res = await callJev(key, body);
@@ -76,7 +86,7 @@ for (const p of MODE === 'search' ? [] : pages) {
         confidence: next.confidence,
         correct: p.expected.includes(next.choice),
         shown: d.kind === 'point',
-        stage: d.stage, // 화면에 보이는 단계 (코드 규칙 반영)
+        stage: d.stage,
         stageCorrect: d.stage === p.expectedStage,
         jevStage: res.answers.pageStage?.choice,
         top3: top.map(([k, v]) => `${k} ${v.toFixed(2)}`),

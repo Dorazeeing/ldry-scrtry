@@ -138,16 +138,3 @@ test('판단: 맞는 길이 둘이라 confidence가 낮아도 확률이 충분�
   };
   assert.equal(decide(res, popup).kind, 'point');
 });
-
-test('판단: 다음에 누를 곳이 인증 방법 버튼이면 단계는 로그인 (Jev 단계 답과 달라도)', () => {
-  const auth = [{ id: 0, label: '간편인증', kind: 'button', area: 'main' }];
-  const res = {
-    answers: {
-      nextControl: { type: 'choice', choice: '간편인증', confidence: 0.86, probabilities: { 간편인증: 0.88 } },
-      pageStage: { type: 'choice', choice: '신청서 작성', confidence: 0.7, probabilities: { '신청서 작성': 0.8 } },
-    },
-  };
-  const d = decide(res, auth);
-  assert.equal(d.stage, '로그인');
-  assert.equal(d.raw.stage, '신청서 작성', '원래 답은 기록에 남긴다');
-});
