@@ -112,6 +112,19 @@ Stores, on the user's device only: which document the user is being guided to ge
 ※ 서버는 무료 요금제라 잠들어 있으면 첫 요청이 몇 초 걸리거나 한 번 실패할 수 있어요. 한 번 더 누르면 됩니다.
 ```
 
+### 5-1. 실제 대시보드 입력 (영어, 500자 이하)
+
+- Username / Password: **비워 둔다** (로그인이 필요 없는 확장, 개인 계정 정보를 넣지 않는다)
+- Additional instructions (486자):
+```
+No login needed.
+1) Install, open https://www.gov.kr/mw/AA020InfoCappView.do?HighCtgCD=A01010001&CappBizCD=13100000015
+2) In the bottom-right panel press "동의하고 시작하기" (consent). Nothing is sent to our server before that.
+3) Type "이사 다닌 기록", press "찾기", pick the first result.
+4) "발급하기" gets a red outline. After it is pressed a member/non-member dialog opens; the guide stops highlighting there on purpose (login is done by the user).
+The first request after idle can take a few seconds.
+```
+
 ## 6. 제출 전 확인
 
 - [ ] 개인정보 처리방침을 공개 주소에 올리고 위 URL에 적는다 (`store/privacy/index.html`의 [팀 이름]·[연락 이메일] 채우기)
