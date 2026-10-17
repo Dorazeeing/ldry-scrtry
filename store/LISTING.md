@@ -1,6 +1,7 @@
 # 크롬 웹스토어 제출 자료 (ldry-scrtry)
 
 > 대시보드에 그대로 옮겨 적는 자료다. **[ ]로 표시한 곳은 사람이 정해야 하는 값**이고, 지어내지 않았다.
+> **상태 (2026-10-17): 제출 완료, 1차 거절(설명의 기관 이름 나열) → 수정 후 재제출, 심사 중.** 아래 §6의 체크 상태는 현재 기준이다.
 > 제출은 배포 전용 Google 계정으로 https://chrome.google.com/webstore/devconsole 에서 사람이 한다 (로그인·결제 계정이라 자동화하지 않음).
 
 ## 1. 파일
@@ -95,7 +96,7 @@ Stores, on the user's device only: which document the user is being guided to ge
 
 ## 4. 배포
 
-- **공개 범위:** 공개(Public). **배포 지역:** [ ] 대한민국만으로 제한할지 정한다 (한국어 서비스라 제한해도 무방)
+- **공개 범위:** 공개(Public). **배포 지역:** 제출 때 입력한 값을 대시보드에서 확인 (대한민국만으로 제한해도 무방)
 - **판매자 상태:** 비판매자(Non-trader) — 계정 설정에서 이미 신고
 - **게시 방식:** "심사 통과 후 직접 게시"를 고르면 통과 후 30일 안에 눌러서 게시한다
 
@@ -126,8 +127,8 @@ The first request after idle can take a few seconds.
 
 ## 6. 제출 전 확인
 
-- [ ] 개인정보 처리방침을 공개 주소에 올리고 위 URL에 적는다 (`store/privacy/index.html`의 [팀 이름]·[연락 이메일] 채우기)
+- [x] 개인정보 처리방침 공개: https://ldry-scrtry-privacy.vercel.app/ (운영자 "ldry-scrtry 개발팀" 임시, 문의 dorazeeing@gmail.com)
 - [ ] 게시자 이름을 팀 이름으로 바꾼다 (정부 기관처럼 보이는 이름 금지), 2단계 인증 확인
-- [ ] 초안으로 zip을 올려 **확장 ID를 받는다** → Railway `ALLOWED_ORIGIN`에 `chrome-extension://<ID>`를 쉼표로 추가하고 다시 배포 (그 전에는 스토어판이 서버에서 403으로 거절된다)
-- [ ] 위 시험 안내 1~4를 스토어판으로 직접 해 본다
-- [ ] 기관 사이트 12곳은 **자동 시험을 못 했다** (robots·로그인). 실제 크롬으로 서류마다 한 번씩 따라가 보고, 안 되는 곳은 `src/lib/sites.js`에서 `active`를 끄고 `manifest.json`을 다시 맞춘 뒤 제출한다
+- [x] 초안 업로드로 **확장 ID를 받음** (`poicbfndbnffkpkmmkmhmnehpbmemnif`) → Railway `ALLOWED_ORIGIN`에 추가 완료
+- [ ] 승인 뒤 위 시험 안내 1~4를 스토어판으로 직접 해 본다
+- [ ] 기관 사이트 12곳은 **자동 시험을 못 했다** (robots·로그인). 실제 크롬으로 서류마다 따라가 보고, 안 되는 곳은 `src/lib/sites.js`에서 `active`를 끄고 `manifest.json`을 맞춘 뒤 새 버전으로 올린다 (심사 중에는 고치지 않는다)
