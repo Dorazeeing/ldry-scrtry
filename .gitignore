@@ -5,3 +5,4 @@ trial-out/
 .env*
 .omc/
 .DS_Store
+store/raw/
