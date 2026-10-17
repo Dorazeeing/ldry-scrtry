@@ -632,13 +632,23 @@
     }
     const map = new Map();
     const candidates = [];
-    const seen = new Set();
+    const seen = new Map(); // 이름 → 후보 번호
     for (const d of [...groups.popup, ...groups.main, ...groups.menu]) {
       const label = d.label.replace(/\s+/g, ' ').trim();
-      if (seen.has(label)) continue;
-      seen.add(label);
-      const id = candidates.length;
       const box = d.box ?? [d.el];
+      const at = seen.get(label);
+      if (at !== undefined) {
+        // 같은 이름이면 고르는 칸을 남긴다. 2026-10-18 전자가족관계: 신청서의 「혼인관계증명서」(골라짐)가 옆 메뉴의
+        // 같은 이름 링크에 밀려 빠지자, AI가 서류를 아직 안 골랐다고 보고 링크를 가리켰다 (누르자 본인 확인이 풀림)
+        if (d.kind === 'option' && candidates[at].kind !== 'option') {
+          map.set(at, box);
+          for (const e of box) labelOf.set(e, label);
+          candidates[at] = { id: at, label, detail: d.detail, kind: d.kind, area: d.area, selected: d.selected === true, filled: false };
+        }
+        continue;
+      }
+      const id = candidates.length;
+      seen.set(label, id);
       map.set(id, box);
       for (const e of box) labelOf.set(e, label);
       candidates.push({ id, label, detail: d.detail, kind: d.kind, area: d.area, selected: d.selected === true, filled: d.filled === true });
@@ -647,7 +657,7 @@
     // 떠 있는 창의 안내 글 (버튼 이름은 빼고). 예: "회원/비회원 신청가능 서비스입니다."
     const box = dialog ?? layer;
     let popupText = box ? lines(box.innerText).join(' ') : '';
-    for (const l of [...seen].sort((a, b) => b.length - a.length)) if (l.length > 1) popupText = popupText.split(l).join(' ');
+    for (const l of [...seen.keys()].sort((a, b) => b.length - a.length)) if (l.length > 1) popupText = popupText.split(l).join(' ');
     popupText = popupText.replace(/\s+/g, ' ').trim().slice(0, 300);
     const page = { title: document.title, headings: headings(dialog ?? document), popupText };
     return { candidates, map, page, dialog: Boolean(box), consent };

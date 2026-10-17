@@ -32,7 +32,7 @@ function mockAnswer(body) {
   const keys = Object.keys(body.questions.nextControl.criteria);
   const choice = PICK_ORDER.map((p) => keys.find((k) => k === p || k.startsWith(p))).find(Boolean) ?? NONE_OPTION;
   const path = body.state.page.address;
-  const stage = path.includes('login') ? '로그인' : path.includes('AA020') ? '민원 안내' : '민원 찾기';
+  const stage = path.includes('login') ? '로그인' : path.includes('AA020') ? '민원 안내' : path.includes('form-') ? '신청서 작성' : '민원 찾기';
   return {
     model: 'mock',
     answers: {
@@ -274,7 +274,13 @@ async function fake(name, file, host = 'www.gov.kr') {
   const before = requests.length;
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(3500);
-  return { before, asks: requests.slice(before).filter((b) => b.questions?.nextControl), msg: await shadow('.msg').textContent(), rings: await shadow('.ring').count() };
+  return {
+    before,
+    asks: requests.slice(before).filter((b) => b.questions?.nextControl),
+    msg: await shadow('.msg').textContent(),
+    stage: await shadow('.stage').textContent(),
+    rings: await shadow('.ring').count(),
+  };
 }
 // 5-1b. 어느 사이트에서든 같다: 기관 사이트(홈택스 주소)의 로그인 방법 고르기도 직접 고르게 넘긴다
 const loginFake = await fake('login', 'login-methods.html', 'www.hometax.go.kr');
@@ -291,6 +297,22 @@ await page.screenshot({ path: join(OUT, '5-overlay-dom.png') });
 const frameOverlay = await fake('iframe', 'overlay-iframe.html');
 check('떠 있는 iframe 창이 덮으면 서버에 묻지 않고 도움말만', frameOverlay.asks.length === 0 && frameOverlay.rings === 0 && frameOverlay.msg.includes('창 안은 길잡이가 볼 수 없어요'), `${frameOverlay.asks.length}건, 테두리 ${frameOverlay.rings}개`);
 await page.screenshot({ path: join(OUT, '5-overlay-iframe.png') });
+// 5-2b. 신청서의 고르는 칸은 사용자가 직접 (D-11). 옆 메뉴 링크와 같은 이름(「초본」)이어도 신청서의 고르는 칸이 남는다
+// (2026-10-18 전자가족관계: 링크에 밀려 빠지자 AI가 옆 메뉴 「혼인관계증명서」를 가리켰고, 누르자 본인 확인이 풀렸다)
+const formFake = await fake('choices', 'form-choices.html');
+const choiceCriteria = formFake.asks.at(-1)?.questions.nextControl.criteria ?? {};
+const choiceKeys = Object.keys(choiceCriteria);
+check(
+  '신청서: 서류 종류 칸(「초본」, 골라짐)은 남고 본인·가족 같은 고르는 칸은 빠짐',
+  choiceCriteria.초본?.state === 'already selected' && !['본인', '가족', '등본', '전체 포함', '최근 5년'].some((k) => choiceKeys.includes(k)),
+  choiceKeys.join(', '),
+);
+check(
+  '신청서: 「다음」을 가리키고 위쪽 줄에 "직접 골라 주세요"',
+  formFake.rings === 1 && formFake.msg.includes('「다음」') && formFake.stage.includes('「본인」·「가족」') && formFake.stage.includes('직접 골라 주세요'),
+  `테두리 ${formFake.rings}개 · ${formFake.stage} · ${formFake.msg}`,
+);
+await page.screenshot({ path: join(OUT, '5-form-choices.png') });
 
 // 5-3. 가리킨 곳을 누르면 그 판단은 버려진다 (민원안내 페이지에서 「발급하기」를 누른 직후 테두리가 사라지고 다시 찾는다)
 since = requests.length;

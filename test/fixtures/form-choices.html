@@ -1,0 +1,19 @@
+<!doctype html>
+<!-- 시험용 가짜 화면: 본인 확인 뒤의 신청서 (2026-10-18 전자가족관계 신청서를 본뜸, 서류는 smoke의 목표인 초본).
+     옆 메뉴 링크와 신청서의 고르는 칸이 같은 이름(「초본」)이다. 고르는 칸이 남아야 하고,
+     「본인·가족」「전체·최근 5년」은 사용자가 직접 고르므로 후보에서 빠져야 한다. -->
+<html lang="ko"><head><meta charset="utf-8"><title>증명서발급 | 주민등록표 초본 | 시험 화면</title>
+<style>body{font:16px/1.6 sans-serif;padding:24px;display:flex;gap:32px}aside{width:200px}fieldset{margin:0 0 16px}</style></head>
+<body>
+<aside><a href="#">초본</a><br><a href="#">등본</a><br><a href="#">나의 발급 이력</a></aside>
+<main>
+  <h2>신청서</h2>
+  <fieldset><legend>1. 발급 대상자</legend>
+    <label><input type="radio" name="who" checked> 본인</label> <label><input type="radio" name="who"> 가족</label></fieldset>
+  <fieldset><legend>2. 서류 종류</legend>
+    <label><input type="radio" name="doc"> 등본</label> <label><input type="radio" name="doc" checked> 초본</label></fieldset>
+  <fieldset><legend>3. 주소 변동</legend>
+    <label><input type="radio" name="range" checked> 전체 포함</label> <label><input type="radio" name="range"> 최근 5년</label></fieldset>
+  <button type="button">다음</button>
+</main>
+</body></html>

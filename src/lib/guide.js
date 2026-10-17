@@ -2,10 +2,10 @@
 // 크롬 API를 쓰지 않는다. Jev 호출은 밖에서 넘겨받는다 (call(body) → 응답). 키는 이 파일에 없다.
 // 중계는 확장이 보낸 값을 믿지 않으므로, 확장에서 이미 거른 값도 여기서 다시 거른다.
 
-import { findService, goalFor, buildSearchRequest, cleanQuery, localSearch, namedButMissing, pickServices, publicItem, MAX_RESULTS } from './catalog.js';
+import { docNames, findService, formPicks, goalFor, buildSearchRequest, cleanQuery, localSearch, namedButMissing, pickServices, publicItem, MAX_RESULTS } from './catalog.js';
 import { STAGE_TEXT } from './goals.js';
 import { buildRequest, decide } from './jev.js';
-import { HANDOFF_RESULT, detectHandoff, withoutLoginControls } from './handoff.js';
+import { HANDOFF_RESULT, choiceNote, detectHandoff, splitChoices, withoutLoginControls, withoutSelfLinks } from './handoff.js';
 import { cleanGuidePayload } from './sanitize.js';
 import { ALLOWED_HOSTS, siteFor } from './sites.js';
 
@@ -26,7 +26,11 @@ export function prepareGuide({ goalId, page, candidates, pressed }) {
   // 로그인 방법을 고르는 화면은 사용자가 직접 한다: 서버에 묻지 않고 넘긴다
   if (detectHandoff(clean.candidates)) return { result: { ...HANDOFF_RESULT } };
   // 로그인·회원가입·인증 버튼은 후보에서 뺀다 (AI가 "로그인부터"를 고르지 못하게)
-  const list = withoutLoginControls(clean.candidates);
+  // 신청서의 고르는 칸(본인·가족 등)도 사용자가 직접 고르므로 뺀다. 서류 종류 칸만 남긴다 (D-11)
+  const { list: kept, personal } = splitChoices(withoutLoginControls(clean.candidates), formPicks(goalId));
+  // 이미 그 서류 화면이면 같은 이름의 메뉴 링크는 뺀다 (다시 누르면 처음으로 돌아가고 본인 확인이 풀린다)
+  const list = withoutSelfLinks(kept, { names: docNames(goalId), title: clean.page.title, pressed: clean.pressed });
+  const note = choiceNote(personal, clean.pressed);
   if (list.length === 0) return { result: { kind: 'unsure', reason: 'no_candidates', stage: null, stageText: '' } };
   const body = buildRequest({
     goal: goalFor(goalId),
@@ -35,11 +39,15 @@ export function prepareGuide({ goalId, page, candidates, pressed }) {
     pressed: clean.pressed,
     site: siteFor(host)?.name ?? '정부24',
   });
-  return { body, candidates: list };
+  return { body, candidates: list, note };
 }
 
+const FORM_STAGE = '신청서 작성';
+
 // 판단 결과를 화면에 쓸 모양으로. 캐시된 판단이면 이번 후보 목록의 id로 다시 잇는다.
-export function finishGuide(decision, candidates) {
+// note(직접 고를 칸 안내)는 신청서 화면일 때만 단계 설명 대신 위쪽 줄에 쓴다
+// (정부24 민원안내 화면의 만족도 설문도 고르는 칸이라, 거기서 "직접 골라 주세요"가 뜨면 헷갈린다).
+export function finishGuide(decision, candidates, note = '') {
   let d = decision;
   if (d.kind === 'point') {
     const pick = candidates.find((c) => c.label === d.label);
@@ -47,7 +55,8 @@ export function finishGuide(decision, candidates) {
     d = { ...d, id: pick.id };
   }
   const { raw, ...rest } = d;
-  return { ...rest, stageText: STAGE_TEXT[d.stage] ?? '' };
+  const formNote = note && d.stage === FORM_STAGE ? note : '';
+  return { ...rest, stageText: formNote || (STAGE_TEXT[d.stage] ?? '') };
 }
 
 // 한 번에: 준비 → Jev → 정책 → 화면 모양. 오류는 던진다 (JevError).
@@ -57,7 +66,7 @@ export async function guideNext(input, call) {
   if (prep.result) return { result: prep.result };
   const response = await call(prep.body);
   const decision = decide(response, prep.candidates);
-  return { result: finishGuide(decision, prep.candidates), decision, usage: response?.usage };
+  return { result: finishGuide(decision, prep.candidates, prep.note), decision, usage: response?.usage };
 }
 
 // 어르신이 적은 말 → 목록에서 고를 후보. call이 없거나 실패하면 글자 맞추기로 찾는다.

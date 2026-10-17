@@ -5,7 +5,8 @@
 // site: 정부24 밖 기관 사이트에서 발급하는 서류 (sites.js의 주소). 길잡이는 그 사이트에서도 뜬다.
 // plain(쉬운 설명)에는 서류에 무엇이 나오는지만 쓴다. 인터넷 발급 가능 여부처럼 확인하지 않은 내용은 쓰지 않는다.
 // formNote: 신청서에서 꼭 골라야 하는 것 (Jev 목표 문장에 붙음)
-// names: 같은 서류의 다른 공식 표기 (목록에 있는지 확인할 때만 씀)
+// names: 같은 서류의 다른 공식 표기 (목록에 있는지 확인할 때, 이미 그 서류 화면인지 볼 때 씀)
+// picks: 신청서에서 서류 종류를 고르는 칸의 짧은 이름. 서류 이름·names와 같은 이름의 고르는 칸만 길잡이가 가리킨다 (handoff.js, D-11)
 
 import { NONE_OPTION, cleanText, looksPersonal } from './sanitize.js';
 import { ALLOWED_HOSTS, siteFor } from './sites.js';
@@ -18,6 +19,7 @@ export const CATALOG = [
     plain: '내 주소가 바뀌어 온 기록(이사 다닌 기록)이 나오는 서류',
     names: ['주민등록초본', '주민등록등본(초본)'],
     aliases: ['초본', '주소 이력', '이사 기록', '주소 변동', '주민등록'],
+    picks: ['초본'],
     formNote: 'On the application form, choose 초본, not 등본.',
   },
   {
@@ -27,6 +29,7 @@ export const CATALOG = [
     plain: '지금 주소와 우리 집에 함께 등록된 가족이 나오는 서류',
     names: ['주민등록등본', '주민등록등본(초본)'],
     aliases: ['등본', '세대', '같이 사는 가족', '주민등록'],
+    picks: ['등본'],
     formNote: 'On the application form, choose 등본, not 초본.',
   },
   { id: 'family_relation', name: '가족관계증명서', service: '가족관계증명서', plain: '부모, 배우자, 자녀 같은 가족 관계가 나오는 서류', aliases: ['가족관계', '가족 증명', '자녀', '부모'], site: 'efamily.scourt.go.kr' },
@@ -66,6 +69,21 @@ export const MIN_RESULT_PROBABILITY = 0.08;
 
 export function findService(id) {
   return BY_ID.get(id) ?? null;
+}
+
+// 서류의 공식 이름들 (화면 제목에 이 이름이 있으면 그 서류 화면에 와 있는 것)
+export function docNames(id) {
+  const c = BY_ID.get(id);
+  return c ? [c.name, ...(c.names ?? [])] : [];
+}
+
+// 목록에 있는 어떤 서류의 이름인지 (「등본」「기본증명서」처럼 다른 서류를 고르는 칸을 "직접 골라 주세요" 예로 들지 않으려고)
+const ALL_PICKS = new Set(CATALOG.flatMap((c) => [c.name, ...(c.names ?? []), ...(c.picks ?? [])]).map((s) => s.replace(/\s+/g, '')));
+export const isDocumentName = (label) => ALL_PICKS.has(String(label ?? '').replace(/\s+/g, ''));
+
+// 신청서에서 길잡이가 가리켜도 되는 고르는 칸 이름 (서류 종류)
+export function formPicks(id) {
+  return [...docNames(id), ...(BY_ID.get(id)?.picks ?? [])];
 }
 
 // 길잡이가 안 뜨는 기관 사이트에서 발급하는 서류인지
