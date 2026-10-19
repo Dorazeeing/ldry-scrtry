@@ -173,9 +173,14 @@ export function buildSearchRequest(query) {
 // 서류 이름처럼 적었는데(…증명서, …등본, …대장 등) 목록에 같은 이름이 없는지.
 // 2026-10-17: "혼인관계증명서"가 목록에 없어 Jev가 가장 가까운 「가족관계증명서」(0.83)를 골랐다 → 다른 서류를 맞는 것처럼 보여 주면 안 된다.
 const DOC_NAME = /(증명서?|등본|초본|대장|확인서?|원부|교부|신고|재발급|도)$/;
+// 쉬운 말은 앞 낱말이 조사·말끝으로 끝난다 (「결혼한 거 증명」「소득이 없다는 증명」). 정식 서류 이름은 그렇지 않다 (「제적 등본」「주민등록 초본」)
+const CASUAL_WORD = /(은|는|이|가|을|를|한|던|거)$/;
+
 export function namedButMissing(query) {
   const q = query.replace(/\s+/g, '');
   if (!DOC_NAME.test(q) || q.length < 4) return false;
+  // 2026-10-18: 「결혼한 거 증명」처럼 쉬운 말이 「증명」으로 끝난다고 "목록에 없어요"를 띄우면, 맞는 서류를 찾고도 어르신이 헷갈린다
+  if (query.trim().split(/\s+/).slice(0, -1).some((w) => CASUAL_WORD.test(w))) return false;
   return !CATALOG.some((c) =>
     nameVariants(c).some((v) => v.length >= 2 && (q.includes(v) || v.includes(q))),
   );

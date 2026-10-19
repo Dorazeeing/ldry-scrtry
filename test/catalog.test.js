@@ -75,6 +75,12 @@ test('서류 이름을 적었는데 목록에 없으면 알아챈다 (2026-10-17
     '주민등록 초본': false,
     토지대장: false,
     '이사 다닌 기록이 나오는 서류': false,
+    // 쉬운 말이 「증명」으로 끝나는 경우: 맞는 서류를 찾고도 "목록에 없어요"가 뜨면 안 된다 (2026-10-18)
+    '결혼한 거 증명': false,
+    '이사한 증명': false,
+    '소득이 없다는 증명': false,
+    '제적 등본': true,
+    '출입국 사실 증명서': true,
   };
   for (const [q, want] of Object.entries(cases)) assert.equal(namedButMissing(q), want, q);
 });
