@@ -6,7 +6,7 @@ import { docNames, findService, formPicks, goalFor, buildSearchRequest, cleanQue
 import { STAGE_TEXT } from './goals.js';
 import { buildRequest, decide } from './jev.js';
 import { HANDOFF_RESULT, choiceNote, detectHandoff, splitChoices, withoutLoginControls, withoutSelfLinks } from './handoff.js';
-import { cleanGuidePayload } from './sanitize.js';
+import { MAX_LABEL, NONE_OPTION, cleanGuidePayload, cleanText } from './sanitize.js';
 import { ALLOWED_HOSTS, siteFor } from './sites.js';
 
 // "www.gov.kr/mw/AA020InfoCappView.do" 모양만 받는다 (쿼리·조각 없음). 호스트는 길잡이가 뜨는 사이트여야 한다.
@@ -15,6 +15,26 @@ const PATH_SHAPE = /^([a-z0-9.-]+)(\/[^\s?#]*)?$/;
 export function hostOf(path) {
   const m = PATH_SHAPE.exec(String(path ?? ''));
   return m ? m[1] : '';
+}
+
+// 카드처럼 이름이 두 줄로 나뉜 링크·버튼은 첫 줄만 이름(label)이 되고 둘째 줄은 detail로 따로 온다.
+// 「가족관계 / 증명서」「기본 / 증명서」가 AI에게 「가족관계」「기본」과 「증명서」로 따로 보이면 못 고른다
+// (2026-10-19 전자가족관계 첫 화면: 합치기 전 「해당 없음」 0.45·「가족관계」 0.07 → 합친 뒤 「가족관계 증명서」 0.66).
+// 짧은 둘째 줄(12자 이하, 날짜 아님)만 이름에 합친다. 긴 설명 글은 detail로 둔다. 서버만 고치면 되는 규칙이라 확장 심사가 필요 없다.
+const MAX_JOIN = 12;
+const DATE_LIKE = /^\d{4}[-./]\d{1,2}/;
+export function joinShortDetail(list) {
+  const seen = new Set([NONE_OPTION]);
+  const out = [];
+  for (const c of list) {
+    const d = String(c.detail ?? '').trim();
+    const join = (c.kind === 'link' || c.kind === 'button') && d && d.length <= MAX_JOIN && !DATE_LIKE.test(d);
+    const label = join ? cleanText(`${c.label} ${d}`, MAX_LABEL) : c.label;
+    if (seen.has(label)) continue; // 합친 이름이 겹치면 처음 것만 (Choice 선택지 이름은 겹치면 안 된다)
+    seen.add(label);
+    out.push(join ? { ...c, label, detail: '' } : c);
+  }
+  return out;
 }
 
 // 요청 → Jev 요청 본문. 문제가 있으면 { error }, Jev에 물을 필요가 없으면 { result }.
@@ -27,7 +47,7 @@ export function prepareGuide({ goalId, page, candidates, pressed }) {
   if (detectHandoff(clean.candidates)) return { result: { ...HANDOFF_RESULT } };
   // 로그인·회원가입·인증 버튼은 후보에서 뺀다 (AI가 "로그인부터"를 고르지 못하게)
   // 신청서의 고르는 칸(본인·가족 등)도 사용자가 직접 고르므로 뺀다. 서류 종류 칸만 남긴다 (D-11)
-  const { list: kept, personal } = splitChoices(withoutLoginControls(clean.candidates), formPicks(goalId));
+  const { list: kept, personal } = splitChoices(joinShortDetail(withoutLoginControls(clean.candidates)), formPicks(goalId));
   // 이미 그 서류 화면이면 같은 이름의 메뉴 링크는 뺀다 (다시 누르면 처음으로 돌아가고 본인 확인이 풀린다)
   const list = withoutSelfLinks(kept, { names: docNames(goalId), title: clean.page.title, pressed: clean.pressed });
   const note = choiceNote(personal, clean.pressed);

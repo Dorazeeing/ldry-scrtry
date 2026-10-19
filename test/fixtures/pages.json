@@ -2221,5 +2221,398 @@
     "area": "main"
    }
   ]
+ },
+ {
+  "name": "전자가족관계 첫 화면 (사이트가기 뒤)",
+  "source": "2026-10-19 사용자가 개발자 도구로 복사해 준 실제 버튼·링크 목록 (화면 속 글 아님). 카드 이름이 두 줄(「가족관계」/「증명서」)이라 합치기 전에는 「해당 없음」 0.45·「가족관계」 0.07",
+  "goalId": "family_relation",
+  "site": "대법원 전자가족관계등록시스템",
+  "expected": [
+   "가족관계 증명서"
+  ],
+  "expectedStage": "민원 안내",
+  "page": {
+   "title": "대한민국 법원 전자가족관계등록시스템",
+   "path": "efamily.scourt.go.kr/index.jsp",
+   "headings": []
+  },
+  "pressed": [
+   "가족관계증명서 발급",
+   "사이트가기"
+  ],
+  "candidates": [
+   {
+    "label": "전체메뉴 열기",
+    "detail": "",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "가족관계",
+    "detail": "증명서",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "기본",
+    "detail": "증명서",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "혼인관계",
+    "detail": "증명서",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "입양관계",
+    "detail": "증명서",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "친양자입양관계",
+    "detail": "증명서",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "영문",
+    "detail": "증명서",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "제적",
+    "detail": "등본",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "제적",
+    "detail": "초본",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "특정",
+    "detail": "증명서",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "이미지제적",
+    "detail": "등본",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "증명서",
+    "detail": "진위확인",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "증명서발급",
+    "detail": "민원안내",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "Verification of Certificate",
+    "detail": "Authenticity",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "신청서양식",
+    "detail": "다운로드",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "출생",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "개명",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "가족관계",
+    "detail": "등록부정정",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "국적취득자의",
+    "detail": "성·본창설",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "가족관계",
+    "detail": "등록창설",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "등록기준지",
+    "detail": "변경",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "처리내역",
+    "detail": "확인",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "인터넷신고",
+    "detail": "민원안내",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "인터넷 출생신고 시 출생통보정보가 아직 전송되지 않았다는 메시지가 나오는데 어떻게 해야 하...",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "증명서를 파일이나 팩스로 발급받을 수 있나요?",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "가족관계증명서에 형제자매가 나오지 않아요. 형제자매의 관계를 증명하려면 어떻게 해야 하나요...",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "자녀나 배우자, 부모의 증명서를 발급받을 수 있나요?",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "자주하는질문",
+    "detail": "전체보기",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "후견등기사항부존재 증명서",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "무인증명서발급기 위치",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "인명용한자 조회",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "국어의 로마자 표기 조회",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "한시적 유예 신청기관별 스크래핑 현황 등 안내",
+    "detail": "2026-09-11",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "가족관계증명서 인터넷 발급 시 스크래핑 가부 안내",
+    "detail": "2026-08-12",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "스크래핑 차단 사전 안내",
+    "detail": "2026-07-16",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "금융인증서 IE11(인터넷 익스플로러) 지원 종료 안내",
+    "detail": "2026-07-14",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "가족관계등록 관련 서식 19종 10개 국어 번역본 게시",
+    "detail": "2025-02-14",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "새소식",
+    "detail": "전체보기",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "1",
+    "detail": "",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "2",
+    "detail": "",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "3",
+    "detail": "",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "4",
+    "detail": "",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "5",
+    "detail": "",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "6",
+    "detail": "",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "7",
+    "detail": "",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "‹",
+    "detail": "이전",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "정지",
+    "detail": "",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "›",
+    "detail": "다음",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "대한민국 법원",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "사법정보공개포털",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "전자후견등기시스템",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "재외국민 가족관계등록사무소",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "인터넷등기소",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "전자소송포털",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "등기정보광장",
+    "detail": "",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "‹",
+    "detail": "이전",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "›",
+    "detail": "다음",
+    "kind": "button",
+    "area": "main"
+   },
+   {
+    "label": "이용약관",
+    "detail": "",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "개인정보 처리방침",
+    "detail": "",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "저작권 보호 정책",
+    "detail": "",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "링크 시 유의사항",
+    "detail": "",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "원격지원",
+    "detail": "",
+    "kind": "link",
+    "area": "menu"
+   }
+  ]
  }
 ]

@@ -119,3 +119,25 @@ test('2026-10-18 전자가족관계 신청서 (사용자 스크린샷): 옆 메�
   // 신청서 화면이 아니면(민원안내 화면의 만족도 설문 등) 안내 문구를 쓰지 않는다
   assert.equal(finishGuide({ kind: 'point', id: 30, label: '다음', targetKind: 'button', stage: '민원 안내' }, prep.candidates, prep.note).stageText, '찾는 민원의 안내 화면이에요.');
 });
+
+test('두 줄 카드: 짧은 둘째 줄은 이름에 합치고, 날짜·긴 설명·선택지는 그대로 둔다 (2026-10-19 전자가족관계 첫 화면)', () => {
+  const link = (label, detail, kind = 'link') => ({ label, detail, kind, area: 'main' });
+  const prep = prepareGuide({
+    goalId: 'family_relation',
+    page: { title: '전자가족관계', path: 'efamily.scourt.go.kr/index.jsp', headings: [] },
+    candidates: [
+      link('가족관계', '증명서'), link('기본', '증명서'), link('제적', '등본'), link('제적', '초본'),
+      link('가족관계', '등록부정정'), link('새소식', '전체보기'), link('스크래핑 안내', '2026-09-11'),
+      link('주민등록등본(초본)', '내 주소가 바뀌어 온 기록이 나오는 서류예요'), link('사이트가기', '', 'button'),
+    ].map((c, id) => ({ id, ...c })),
+    pressed: [],
+  });
+  const labels = prep.candidates.map((c) => c.label);
+  assert.ok(labels.includes('가족관계 증명서') && labels.includes('기본 증명서'));
+  assert.ok(labels.includes('새소식 전체보기'));
+  assert.ok(labels.includes('스크래핑 안내'), '날짜는 합치지 않는다');
+  assert.ok(labels.includes('주민등록등본(초본)'), '긴 설명은 합치지 않는다');
+  assert.ok(labels.includes('사이트가기'));
+  assert.equal(new Set(labels).size, labels.length, '이름이 겹치지 않는다');
+  assert.equal(prep.candidates.find((c) => c.label === '가족관계 증명서').id, 0, '번호는 그대로 (화면에서 그 버튼을 찾는다)');
+});

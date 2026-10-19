@@ -108,6 +108,13 @@ export function cleanCandidates(raw) {
 
 export const MAX_PATH = 200;
 
+// 정부24 밖 사이트에서도 보내도 되는 버튼 둘째 줄: 이름의 일부인 짧은 서류·동작 낱말 (「가족관계 / 증명서」「제적 / 등본」「처리내역 / 확인」).
+// "홍길동 (개인)"·"가나다상사"처럼 사람·회사 이름은 이 낱말로 끝나지 않아 계속 막힌다.
+// (2026-10-19: 둘째 줄을 통째로 막았더니 전자가족관계 첫 화면의 카드 이름이 「가족관계」「기본」…과 「증명서」로 갈라져 AI가 못 골랐다)
+const SAFE_DETAIL = /(증명서?|등본|초본|원부|대장|확인서?|확인|신청|발급|조회|안내|정정|창설|변경|신고|다운로드|전체보기|이전|다음)$/;
+const SAFE_DETAIL_MAX = 12;
+const safeDetail = (d) => (d && d.length <= SAFE_DETAIL_MAX && SAFE_DETAIL.test(d) ? d : '');
+
 // 화면 정보를 밖으로 보내기 전에 거른다. 확장은 서버로 보내기 전에, 중계 서버는 받은 뒤에 같은 규칙으로 다시 한다.
 // 주소가 "호스트+경로"이고 정부24인지는 호출하는 쪽(guide.js)이 확인한다.
 export function cleanGuidePayload({ page, candidates, pressed }) {
@@ -123,7 +130,7 @@ export function cleanGuidePayload({ page, candidates, pressed }) {
       headings: sendText ? cleanHeadings(page?.headings) : [],
       popupText: sendText ? cleanText(page?.popupText, MAX_POPUP_TEXT) : '',
     },
-    candidates: sendText ? list : list.map((c) => ({ ...c, detail: '' })),
+    candidates: sendText ? list : list.map((c) => ({ ...c, detail: safeDetail(c.detail) })),
     pressed: cleanPressed(pressed),
   };
 }
