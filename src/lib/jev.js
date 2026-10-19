@@ -12,8 +12,10 @@ export const RUBRIC_VERSION = 7;
 // confidence(분포가 한 곳에 몰린 정도)가 아니라 확률을 쓰는 이유: "회원 신청하기"(0.41)·"비회원 신청하기"(0.30)처럼
 // 맞는 길이 둘이면 confidence가 0.2대로 떨어진다. 2026-10-17 시험 24건에서 0.35는 맞은 것을 모두 보여 주고 틀린 것을 모두 걸렀다 (README).
 export const MIN_PROBABILITY = 0.35;
-export const TIMEOUT_MS = 15000;
-export const MAX_RETRIES = 2;
+// 중계 서버 안에서 Jev를 기다리는 총 시간(5초 × 2번 + 쉼 ≤ 1초)이 확장의 기다림(relay.js TIMEOUT_MS 12초)보다 짧아야 한다.
+// 길면 확장이 먼저 포기하고, 서버는 아무도 안 받을 답을 계속 기다린다. Jev는 보통 0.2~0.6초 (README 시험 기록).
+export const TIMEOUT_MS = 5000;
+export const MAX_RETRIES = 1;
 
 const KIND_TEXT = {
   button: 'button',

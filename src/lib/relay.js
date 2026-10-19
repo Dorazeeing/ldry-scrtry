@@ -1,5 +1,6 @@
 // 확장 → 중계 서버 호출. 키는 확장에 없다 (서버가 가지고 있다). 계약은 server/openapi.yaml.
-// Railway Free 요금제는 서버를 재워 둬서, 깨어나는 첫 요청이 502·시간 초과로 실패할 수 있다 → 한 번만 다시 보낸다.
+// Railway Free 요금제는 서버를 재워 둬서, 깨어나는 첫 요청이 502·연결 실패로 끝날 수 있다 → 한 번만 다시 보낸다.
+// 시간 초과는 다시 보내지 않는다: 서버는 이미 받아서 Jev에 묻는 중일 수 있다 (두 번 부르면 하루 상한을 두 번 쓴다).
 
 // 중계 주소는 여기 한 곳. manifest.json host_permissions와 같아야 한다 (npm run check가 검사).
 export const RELAY_URL = 'https://relay-production-4d72.up.railway.app';
@@ -35,7 +36,7 @@ export async function callRelay(path, body, { fetchImpl = fetch, wait = sleep, t
       });
     } catch (err) {
       const timedOut = err?.name === 'TimeoutError' || err?.name === 'AbortError';
-      if (attempt === 0) {
+      if (attempt === 0 && !timedOut) {
         await wait(RETRY_WAIT_MS);
         continue;
       }

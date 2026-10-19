@@ -5,6 +5,7 @@
 import { CATALOG, DEFAULT_GOAL_ID, cleanQuery, findService, goalFor, publicItem } from './lib/catalog.js';
 import { searchCatalog } from './lib/guide.js';
 import { HANDOFF_RESULT, detectHandoff, withoutLoginControls } from './lib/handoff.js';
+import { RUBRIC_VERSION } from './lib/jev.js';
 import { CONSENT_VERSION, RelayError, callRelay } from './lib/relay.js';
 import { MAX_LABEL, MAX_PRESSED, cleanGuidePayload, cleanPath, cleanText } from './lib/sanitize.js';
 import { ALLOWED_HOSTS } from './lib/sites.js';
@@ -101,15 +102,17 @@ async function ask(msg, sender) {
   if (clean.candidates.length === 0) return { kind: 'unsure', reason: 'no_candidates', stage: null, stageText: '' };
 
   const payload = { goalId: guide.goalId, ...clean };
-  const hash = await sha256(JSON.stringify(payload));
-  const hit = cache.get(hash);
+  // 질문 문구를 바꾸면(RUBRIC_VERSION) 예전 답을 쓰지 않는다. 「다시 찾기」(manual)는 저장된 답을 건너뛴다 (Jev 답은 매번 조금 다를 수 있다)
+  const hash = await sha256(JSON.stringify({ rubric: RUBRIC_VERSION, ...payload }));
+  const hit = msg.manual ? null : cache.get(hash);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return { ...hit.result, latencyMs: 0 };
 
   const started = Date.now();
   try {
     const result = await callRelay('/v1/guide/next', payload);
     const latencyMs = Date.now() - started;
-    cache.set(hash, { at: Date.now(), result });
+    // 오류(예: Jev 답 모양이 틀림)는 저장하지 않는다 → 30분 동안 같은 오류가 반복되지 않게
+    if (result?.kind !== 'error') cache.set(hash, { at: Date.now(), result });
     if (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value);
     await log({ path: clean.page.path, candidates: clean.candidates.length, latencyMs, kind: result.kind, label: result.label, stage: result.stage });
     return { ...result, latencyMs };

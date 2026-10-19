@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { goalFor } from '../src/lib/catalog.js';
 import { STAGES } from '../src/lib/goals.js';
-import { ENDPOINT, JevError, MIN_PROBABILITY, MODEL, buildRequest, callJev, decide, errorCodeForStatus } from '../src/lib/jev.js';
+import { ENDPOINT, JevError, MAX_RETRIES, MIN_PROBABILITY, MODEL, TIMEOUT_MS, buildRequest, callJev, decide, errorCodeForStatus } from '../src/lib/jev.js';
 import { NONE_OPTION } from '../src/lib/sanitize.js';
 
 const candidates = [
@@ -90,13 +90,15 @@ test('호출: 주소·헤더·본문을 공식 형식으로 보낸다', async ()
   assert.equal(seen.init.body, '{"a":1}');
 });
 
-test('호출: 429·529는 물러났다가 다시 시도한다', async () => {
-  const replies = [fail(429), fail(529), ok({ answers: { x: 1 } })];
-  const waits = [];
-  const res = await callJev('k', {}, { fetchImpl: async () => replies.shift(), wait: async (ms) => waits.push(ms) });
-  assert.deepEqual(res, { answers: { x: 1 } });
-  assert.equal(waits.length, 2);
-  assert.ok(waits[1] > waits[0], '기다리는 시간이 늘어난다');
+test('호출: 429·529는 한 번 물러났다가 다시 시도한다 (서버 시간 예산이 확장의 기다림 12초보다 짧아야 한다)', async () => {
+  for (const status of [429, 529]) {
+    const replies = [fail(status), ok({ answers: { x: 1 } })];
+    const waits = [];
+    const res = await callJev('k', {}, { fetchImpl: async () => replies.shift(), wait: async (ms) => waits.push(ms) });
+    assert.deepEqual(res, { answers: { x: 1 } });
+    assert.equal(waits.length, 1);
+  }
+  assert.ok(TIMEOUT_MS * (MAX_RETRIES + 1) + 1000 < 12000, '재시도까지 합친 최대 기다림이 확장의 시간 제한보다 짧다');
 });
 
 test('호출: 재시도 한도를 넘으면 오류', async () => {

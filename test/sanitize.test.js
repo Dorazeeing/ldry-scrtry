@@ -106,3 +106,14 @@ test('정부24 밖 사이트는 제목 글·창 안내 글을 보내지 않고, 
   assert.deepEqual(b.page.headings, ['증명서 발급']);
   assert.equal(b.page.popupText, '확인하세요');
 });
+
+test('정부24 밖 사이트는 버튼 둘째 줄 글(detail)도 보내지 않는다 (2026-10-18 검수: "홍길동 (개인)" 같은 이름이 새던 틈)', () => {
+  const candidates = [{ id: 0, label: '나의 정보', detail: '홍길동 (개인) 가나다상사', kind: 'link', area: 'main' }];
+  const page = { title: '홈택스', headings: ['나의 정보'], popupText: '안내' };
+  const hometax = cleanGuidePayload({ page: { ...page, path: 'www.hometax.go.kr/main' }, candidates, pressed: [] });
+  assert.equal(hometax.candidates[0].detail, '');
+  assert.equal(hometax.candidates[0].label, '나의 정보');
+  // 정부24는 그대로 보낸다
+  const gov = cleanGuidePayload({ page: { ...page, path: 'www.gov.kr/mw/AA020InfoCappView.do' }, candidates, pressed: [] });
+  assert.equal(gov.candidates[0].detail, '홍길동 (개인) 가나다상사');
+});

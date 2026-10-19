@@ -112,7 +112,8 @@ export const MAX_PATH = 200;
 // 주소가 "호스트+경로"이고 정부24인지는 호출하는 쪽(guide.js)이 확인한다.
 export function cleanGuidePayload({ page, candidates, pressed }) {
   const path = stripSession(page?.path).slice(0, MAX_PATH);
-  // 정부24 밖 사이트는 화면 속 글(제목 글·창 안내 글)을 보내지 않는다 (sites.js pageText)
+  // 정부24 밖 사이트는 화면 속 글(제목 글·창 안내 글, 버튼 둘째 줄 글)을 보내지 않는다 (sites.js pageText).
+  // detail(버튼·링크의 둘째 줄)에는 "홍길동 (개인)"처럼 "님" 없는 이름이 들어갈 수 있다
   const sendText = siteFor(path.split('/')[0])?.pageText !== false;
   const list = focusPopup(cleanCandidates(Array.isArray(candidates) ? candidates.slice(0, 400) : []).candidates);
   return {
@@ -122,7 +123,7 @@ export function cleanGuidePayload({ page, candidates, pressed }) {
       headings: sendText ? cleanHeadings(page?.headings) : [],
       popupText: sendText ? cleanText(page?.popupText, MAX_POPUP_TEXT) : '',
     },
-    candidates: list,
+    candidates: sendText ? list : list.map((c) => ({ ...c, detail: '' })),
     pressed: cleanPressed(pressed),
   };
 }

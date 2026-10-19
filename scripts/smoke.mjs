@@ -19,7 +19,7 @@ const OUT = process.env.SMOKE_OUT ? join(root, process.env.SMOKE_OUT) : join(roo
 mkdirSync(OUT, { recursive: true });
 
 // 가짜 Jev: 아는 이름이 후보에 있으면 고르고, 없으면 "해당 없음"
-const PICK_ORDER = ['주민등록등본(초본)', '주민등록표 등본(초본)', '발급하기', '다음'];
+const PICK_ORDER = ['주민등록등본(초본)', '주민등록표 등본(초본)', '발급하기', '다음', '시험 검색 칸'];
 function mockAnswer(body) {
   if (body.questions.ping) return { model: 'mock', answers: { ping: { type: 'noul', noul: 0.99 } }, usage: {} };
   if (body.questions.service) {
@@ -313,6 +313,21 @@ check(
   `테두리 ${formFake.rings}개 · ${formFake.stage} · ${formFake.msg}`,
 );
 await page.screenshot({ path: join(OUT, '5-form-choices.png') });
+// 5-2c. 검색 칸을 가리키면 서류 이름 「… 글자 복사하기」 단추가 뜨고, 누르면 복사된다 (칸에 대신 적지는 않는다)
+await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'https://www.gov.kr' });
+const searchFake = await fake('search', 'search-box.html');
+const copyLabel = (await shadow('[data-act="copy"]').isVisible()) ? await shadow('[data-act="copy"]').textContent() : '';
+await shadow('[data-act="copy"]').click();
+await page.waitForTimeout(200);
+const copyNote = await shadow('.copy-note').textContent();
+const clip = await page.evaluate(() => navigator.clipboard.readText()).catch((e) => `읽기 실패: ${e.message}`);
+const typed = await page.locator('input[type="search"]').inputValue();
+check(
+  '검색 칸: 서류 이름 복사 단추 → 누르면 복사되고 붙여 넣는 법 안내, 칸에는 대신 적지 않음',
+  searchFake.rings === 1 && copyLabel.includes('「주민등록표 초본」') && copyNote.includes('복사했어요') && clip === '주민등록표 초본' && typed === '',
+  `${copyLabel} · ${copyNote} · 클립보드=${clip} · 칸=${typed}`,
+);
+await page.screenshot({ path: join(OUT, '5-search-copy.png') });
 
 // 5-3. 가리킨 곳을 누르면 그 판단은 버려진다 (민원안내 페이지에서 「발급하기」를 누른 직후 테두리가 사라지고 다시 찾는다)
 since = requests.length;

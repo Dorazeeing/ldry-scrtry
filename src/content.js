@@ -42,6 +42,7 @@
   const labelOf = new WeakMap(); // 요소 → 후보 이름 (누른 기록용)
   let lastSignature = '';
   let lastResult = null;
+  let lastFailed = false; // 마지막 물음이 오류였는지 (오류 뒤에는 배너 회전 같은 변화로 다시 묻지 않는다)
   let lastUrl = location.href;
   let lastDialog = false;
   let targets = []; // [{ els, tag, side, ring, tagEl }] — 약관 화면에서는 여러 곳을 한 번에 표시
@@ -99,6 +100,8 @@
       .consent[hidden] { display: none; }
       .consent ul { margin: 0; padding-left: 24px; font-size: 20px; }
       .consent li { margin-bottom: 8px; }
+      .copy-note { font-size: 20px; font-weight: 700; color: #0b5e2a; }
+      .copy-note:empty { display: none; }
       .goal-line { font-size: 20px; color: #1d3faf; font-weight: 700; }
       .goal-line:empty { display: none; }
       .find { display: flex; flex-direction: column; gap: 12px; }
@@ -118,6 +121,8 @@
         <p class="goal-line"></p>
         <p class="stage"></p>
         <p class="msg" aria-live="polite"></p>
+        <button type="button" class="primary" data-act="copy" hidden></button>
+        <p class="copy-note" aria-live="polite"></p>
         <div class="consent" hidden>
           <ul>
             <li>길잡이는 <b>정부24</b>와 서류를 내려받는 <b>기관 사이트</b>(국세청 홈택스, 건강보험, 가족관계등록시스템 등)에서 켜져요.</li>
@@ -164,6 +169,8 @@
     list: root.querySelector('[data-act="list"]'),
     stage: root.querySelector('.stage'),
     msg: root.querySelector('.msg'),
+    copy: root.querySelector('[data-act="copy"]'),
+    copyNote: root.querySelector('.copy-note'),
     goals: root.querySelector('.goals'),
     rescan: root.querySelector('[data-act="rescan"]'),
     stop: root.querySelector('[data-act="stop"]'),
@@ -193,9 +200,14 @@
     select: (l) => `「${l}」 목록에서 알맞은 것을 골라 주세요.`,
   };
 
-  function show({ stage = '', msg = '', guiding = true }) {
+  // copy: 검색 칸에 넣을 글자. 있으면 「… 글자 복사하기」 단추를 보여 준다 (사용자가 직접 붙여 넣는다)
+  function show({ stage = '', msg = '', guiding = true, copy = '' }) {
     ui.stage.textContent = stage;
     ui.msg.textContent = msg;
+    ui.copy.hidden = !copy;
+    ui.copy.dataset.text = copy;
+    ui.copy.textContent = copy ? `「${copy}」 글자 복사하기` : '';
+    ui.copyNote.textContent = '';
     ui.rescan.hidden = !guiding;
     ui.stop.hidden = !guiding;
     ui.goalLine.textContent = state?.active && state.goalTitle ? `찾는 것: ${state.goalTitle}` : '';
@@ -328,6 +340,37 @@
   }
 
   // ---------- 테두리 ----------
+
+  // ---------- 글자 복사 (검색 칸에 붙여 넣을 서류 이름) ----------
+  // 길잡이는 칸에 대신 적지 않는다. 사용자가 단추를 눌러 복사하고, 직접 칸에 붙여 넣는다.
+  // userAgentData.platform은 "macOS", navigator.platform은 "MacIntel" → 대소문자를 가리지 않는다
+  const PASTE_KEYS = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform || '') ? '⌘(커맨드)+V' : 'Ctrl+V';
+  async function copyText(text) {
+    if (!text) return;
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    } catch {
+      // 클립보드 권한이 막힌 화면: 잠깐 만든 칸을 골라서 복사한다 (누른 직후라 허용된다)
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.setAttribute('readonly', '');
+      area.style.cssText = 'position: fixed; left: -9999px; top: 0; opacity: 0;';
+      document.body.appendChild(area);
+      area.select();
+      try {
+        ok = document.execCommand('copy');
+      } catch {
+        ok = false;
+      }
+      area.remove();
+    }
+    ui.copyNote.textContent = ok
+      ? `복사했어요. 빨간 테두리 검색 칸을 한 번 누르고 ${PASTE_KEYS}를 누르세요. (마우스 오른쪽 단추 → 「붙여넣기」도 돼요)`
+      : `복사가 안 됐어요. 검색 칸에 「${text}」를 직접 적어 주세요.`;
+    spoken = ui.copyNote.textContent;
+  }
 
   function clearTarget() {
     targets = [];
@@ -704,8 +747,10 @@
       if (els && shown(els)) {
         // 사이트 검색 칸이면 무엇을 적을지 알려 준다 (먼저 찾는 서류 페이지로 가야 하므로)
         const searchBox = res.targetKind === 'input' && /검색|무엇을|알고 싶|찾/.test(res.label) && state?.goalTitle;
-        const what = searchBox ? `검색 칸에 「${state.goalTitle}」라고 적고 검색해 주세요.` : ACTION_TEXT[res.targetKind](res.label);
-        show({ stage: res.stageText, msg: `${what} 빨간 테두리로 표시했어요.` });
+        const what = searchBox
+          ? `검색 칸에 「${state.goalTitle}」라고 적고 검색해 주세요. 적기 어려우면 아래 단추로 복사해서 붙여 넣으세요.`
+          : ACTION_TEXT[res.targetKind](res.label);
+        show({ stage: res.stageText, msg: `${what} 빨간 테두리로 표시했어요.`, copy: searchBox ? state.goalTitle : '' });
         pointTo([{ els, tag: '여기를 누르세요' }]);
         return;
       }
@@ -724,7 +769,8 @@
   async function scan(reason) {
     if (!state?.active) return;
     if (asking) {
-      queued = reason;
+      // 묻는 중에 들어온 이유 중 강한 것을 남긴다 (「다시 찾기」·체크가 배너 회전에 묻히지 않게)
+      if (!queued || RANK[reason] > RANK[queued]) queued = reason;
       return;
     }
     const hold = holdScreen();
@@ -742,11 +788,15 @@
       show({ stage: '창이 열려 있어요.', msg: FRAME_HELP });
       return;
     }
+    // 배너 회전 같은 변화(mutation)는 대부분 아무것도 안 바꾼다: 창이 그대로고 가리킬 곳이 아직 보이면(또는 직전이 오류면)
+    // 후보를 전부 모으기 전에 끝낸다 (화면이 바뀔 때마다 수백 개를 훑지 않게)
+    if (reason === 'mutation' && Boolean(activeDialog() || openLayer()) === lastDialog && (targetsShown() || lastFailed)) return;
     const { candidates, map, page, dialog, consent } = collect();
     const dialogChanged = dialog !== lastDialog;
     lastDialog = dialog;
     if (reason === 'mutation' && !dialogChanged) {
-      if (targetsShown()) return;
+      // 서버가 꺼졌거나 상한에 닿았을 때 5초마다 계속 묻지 않는다 → 「다시 찾기」·누르기·쪽 이동 때 다시 묻는다
+      if (targetsShown() || lastFailed) return;
       const wait = MUTATION_GAP_MS - (Date.now() - lastAskAt);
       if (wait > 0) {
         schedule('mutation', wait);
@@ -761,7 +811,8 @@
       const n = consent.todo.length;
       show({
         stage: '약관에 동의하는 화면이에요.',
-        msg: `「필수」 동의 ${n}곳에 체크해 주세요. 빨간 테두리로 표시했어요.${consent.hasOptional ? ' 「선택」 동의는 체크하지 않아도 돼요.' : ''}`,
+        // 한 번에 8곳까지 표시한다. 더 있으면 체크한 뒤 나머지를 이어서 표시한다고 알린다
+        msg: `「필수」 동의 ${n}곳에 체크해 주세요. ${n > 8 ? '먼저 8곳을 빨간 테두리로 표시했어요. 체크하면 나머지를 이어서 표시해요.' : '빨간 테두리로 표시했어요.'}${consent.hasOptional ? ' 「선택」 동의는 체크하지 않아도 돼요.' : ''}`,
       });
       pointTo(consent.todo.slice(0, 8).map((d) => ({ els: d.box ?? [d.el], tag: '필수', side: 'right' })));
       return;
@@ -780,13 +831,14 @@
     show({ msg: '다음에 누를 곳을 찾고 있어요…' });
     let res;
     try {
-      res = await send({ type: 'guide/ask', page, candidates });
+      res = await send({ type: 'guide/ask', page, candidates, manual: reason === 'manual' });
     } catch {
       res = { kind: 'error', code: 'extension' };
     } finally {
       asking = false;
     }
-    lastResult = res?.kind === 'error' ? null : res;
+    lastFailed = res?.kind === 'error';
+    lastResult = lastFailed ? null : res;
     if (signature === lastSignature) apply(res);
     if (queued) {
       const next = queued;
@@ -836,9 +888,12 @@
 
   // ---------- 이벤트 ----------
 
+  // 사람이 누른 것만 받는다: 페이지 스크립트가 .click()으로 「동의하고 시작하기」를 대신 누르지 못하게
   root.addEventListener('click', (e) => {
+    if (!e.isTrusted) return;
     const act = e.target.closest?.('[data-act]')?.dataset.act;
     if (act === 'speak') speak();
+    if (act === 'copy') copyText(ui.copy.dataset.text);
     if (act === 'rescan') scan('manual');
     if (act === 'stop') stop();
     if (act === 'search') search();
@@ -856,7 +911,7 @@
   // 검색 칸의 글자 입력이 정부24 화면의 단축키로 새지 않게 막는다
   for (const type of ['keydown', 'keyup', 'keypress']) ui.find.addEventListener(type, (e) => e.stopPropagation());
   ui.query.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.isComposing) {
+    if (e.isTrusted && e.key === 'Enter' && !e.isComposing) {
       e.preventDefault();
       search();
     }
