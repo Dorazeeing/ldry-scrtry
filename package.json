@@ -13,6 +13,6 @@
     "check": "node scripts/check.mjs && node --test test/*.test.js",
     "smoke": "node scripts/smoke.mjs",
     "trial": "node scripts/trial.mjs",
-    "package": "rm -f ldry-scrtry.zip && zip -r -q ldry-scrtry.zip manifest.json src icons"
+    "package": "node scripts/package.mjs"
   }
 }
