@@ -2099,5 +2099,127 @@
    "일반증명서",
    "가족관계증명서"
   ]
+ },
+ {
+  "name": "정부24 가족관계증명서 안내 (사이트가기)",
+  "source": "2026-10-19 사용자 스크린샷에서 재구성 (plus.gov.kr 자동 접속 차단). 정답은 다른 사이트로 가는 「사이트가기」. 고치기 전에는 목차의 「신청 방법 및 절차」가 0.41~0.64로 이겼다",
+  "goalId": "family_relation",
+  "site": "정부24",
+  "expected": [
+   "사이트가기"
+  ],
+  "expectedStage": "민원 안내",
+  "page": {
+   "title": "서비스 상세 안내 | 정부24",
+   "path": "plus.gov.kr/search/searchdtl",
+   "headings": [
+    "가족관계등록부등의 증명서 발급",
+    "신청 방법",
+    "서비스 내용"
+   ]
+  },
+  "pressed": [],
+  "candidates": [
+   {
+    "label": "For Foreigners",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "어린이",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "시니어",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "지원",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "화면크기",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "AI국민비서",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "통합검색",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "로그인",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "회원가입",
+    "kind": "link",
+    "area": "menu"
+   },
+   {
+    "label": "민원서비스",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "혜택알리미",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "생활",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "정책정보",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "고객센터",
+    "kind": "button",
+    "area": "menu"
+   },
+   {
+    "label": "서비스 개요",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "구비 서류",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "신청 방법 및 절차",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "부가 정보",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "정보 변경 내역",
+    "kind": "link",
+    "area": "main"
+   },
+   {
+    "label": "사이트가기",
+    "kind": "button",
+    "area": "main"
+   }
+  ]
  }
 ]

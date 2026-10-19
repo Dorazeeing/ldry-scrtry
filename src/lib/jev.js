@@ -7,7 +7,7 @@ import { NONE_OPTION } from './sanitize.js';
 export const ENDPOINT = 'https://api.typesafe.ai/v1/systemone';
 export const MODEL = 'jev-latest';
 // 질문 문구·형식을 바꾸면 올린다 (캐시 무효화)
-export const RUBRIC_VERSION = 7;
+export const RUBRIC_VERSION = 8;
 // 고른 후보의 확률이 이 값보다 낮으면 강조하지 않는다.
 // confidence(분포가 한 곳에 몰린 정도)가 아니라 확률을 쓰는 이유: "회원 신청하기"(0.41)·"비회원 신청하기"(0.30)처럼
 // 맞는 길이 둘이면 confidence가 0.2대로 떨어진다. 2026-10-17 시험 24건에서 0.35는 맞은 것을 모두 보여 주고 틀린 것을 모두 걸렀다 (README).
@@ -72,6 +72,8 @@ export function buildRequest({ goal, page, candidates, pressed, site = '정부24
             'If `alreadyPressed` includes an authentication method (such as 간편인증 or 공동인증서) and this page is not a login page, the user has already logged in: continue on this page. Never pick a menu or side link that opens the service in `goal` again, because that starts over and cancels the login.',
             'Options on a form that depend on the user (such as who the document is for, or how detailed it is) are chosen by the user and are not listed. The only options listed are the document type in `goal` and consents.',
             'On a form, fields already filled in and options already selected are done. Pick an empty field only if this user must fill it; skip optional settings (such as a security-keyboard option) and fields meant for other kinds of users (such as foreigner ID fields for a Korean citizen). Once the needed fields are done, pick the control that submits or continues.',
+            'Links that only scroll within the current page (section tabs or table-of-contents entries such as 서비스 개요, 구비 서류, 신청 방법 및 절차, 부가 정보, 정보 변경 내역) never move the user closer to `goal`: do not pick them.',
+            'If `goal` says the document is issued on another site and this page is the 정부24 information page of that document, the next step is the button or link that goes to that site (for example 사이트가기 or 바로가기).',
             'Do not pick controls that log out, cancel, go back, close the page, or start a different service.',
             'On a terms or consent page, agree only to required (필수) items; never pick optional (선택) consents or "agree to all".',
           ],
