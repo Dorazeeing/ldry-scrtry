@@ -27,7 +27,12 @@ Jev 판단을 고칠 때는 TypeSafe 스킬(`typesafe:typesafe-ai`)을 따르고
 | 정책값(`MIN_PROBABILITY` 등)은 `src/lib/jev.js` 상수 한 곳. 질문 문구·형식을 바꾸면 `RUBRIC_VERSION`을 올린다 | 캐시 무효화 |
 | 화면 문구는 쉬운 한국어, 글씨 20px·버튼 56px 이상, 아이콘만 있는 버튼 금지 | `../AGENTS.md` §4 |
 | 끝났다고 하기 전에 `npm run check`와 `npm run smoke`를 돌리고 결과를 보고한다 | 검증 |
-| 커밋·push는 사용자가 요청할 때만 | 팀 Git 규칙 |
+| 커밋·push는 사용자가 요청할 때만. **서버 배포(`railway up`)·Railway 변수 변경·스토어 제출/게시도 사용자가 요청하거나 승인할 때만** 하고, 올리기 전에 `npm run check`(단위 시험)를 돌린다 | 팀 Git 규칙. 운영 서버를 쓰는 사람이 있다. 스토어는 사람이 로그인해서 제출·게시한다 |
+| **스토어에 올리는 zip은 반드시 `npm run package`로 만든다.** 폴더를 손으로 압축하지 않는다. 이 명령(`scripts/package.mjs`)이 `manifest.json`의 개발용 `key`와 `.DS_Store`를 뺀다. 올리기 전에 `manifest.json`의 `version`을 이전보다 높인다 | `key`는 폴더로 불러온 확장의 ID를 고정하려고 넣은 것(`iieapegdhcfmnhgimjhgolgaiffmhbij`)이다. 스토어판 ID(`poicbfndbnffkpkmmkmhmnehpbmemnif`)는 스토어가 정하므로 zip에 넣으면 안 된다. 스토어는 이전보다 낮거나 같은 버전을 받지 않는다 |
+| **무엇을 고치느냐에 따라 배포 길이 다르다.** `src/lib/`(서버와 같이 쓰는 코드)는 `railway up -s relay --ci`만 하면 바로 적용되고 심사가 필요 없다. `src/content.js`·`src/background.js`·`manifest.json`은 새 버전을 올려 **스토어 심사를 다시 받아야** 적용된다. 판단 규칙·개인정보 거르기는 될 수 있으면 `src/lib/`에 둔다 | 심사는 며칠에서 몇 주. 급한 수정은 서버에서 풀 수 있는지 먼저 본다 |
+| **폴더 이름·위치를 바꾸면 Railway 연결이 끊긴다.** `railway link -p ldry-scrtry -e production -s relay`로 다시 잇고, `railway status`로 확인한 뒤 `railway up`을 한다. 서버 허용 목록(`ALLOWED_ORIGIN`)은 로컬 ID와 스토어 ID 둘뿐이다 | 연결 정보가 폴더 경로에 묶여 있다 (2026-10-19 Hackerton → Hackathon 이름 변경 때 끊김) |
+| 정부24 밖 사이트(기관 사이트)에서 서버로 보내는 글을 늘리거나 줄일 때는 **두 줄 카드 이름**을 확인한다. 둘째 줄(`detail`)을 통째로 막으면 「가족관계 / 증명서」가 「가족관계」와 「증명서」로 갈라져 AI가 못 고른다. 지금은 서류·동작 낱말로 끝나는 12자 이하 둘째 줄만 보내고 서버가 이름에 합친다 | 2026-10-19 사고: 개인정보 수정이 전자가족관계 첫 화면을 망가뜨림. 사람·회사 이름은 계속 막아야 한다 |
+| 화면 모양을 고칠 때는 **실제 화면의 버튼 목록**으로 시험 자료(`test/fixtures/pages.json`)를 늘린다. 자동 접속이 막힌 사이트는 사용자가 개발자 도구로 복사해 준 목록을 쓴다 (우회하지 않는다). 규칙을 바꾸면 `MODE=pages ROUNDS=1 TYPESAFE_API_KEY=… node scripts/trial.mjs`를 **한 번** 돌려 기존 화면이 그대로 정답인지 본다 | 규칙 한 줄이 다른 화면을 깨뜨린 적이 있다. 시간·평균을 재려는 반복 실험은 하지 않는다 |
 
 ## 배포 현황 (2026-10-17)
 
@@ -37,7 +42,7 @@ Jev 판단을 고칠 때는 TypeSafe 스킬(`typesafe:typesafe-ai`)을 따르고
 | 게시자 이름 | **아직 계정 이메일 그대로** → 대시보드 Settings에서 팀 이름으로 바꾼다. "정부24"·"행정안전부"처럼 공식 기관으로 보이는 이름 금지 |
 | 2단계 인증 | 확인 필요 (꺼져 있으면 게시·업데이트 불가). 승인 전에 확인한다 |
 | 확장 한도 | **1/2** (심사 중인 초안도 셈). 피드 지킴이(`../slop-detector`)와 같은 게시자라 남은 자리 1개를 함께 쓴다 |
-| 웹스토어 항목 | **있음.** 항목 ID `poicbfndbnffkpkmmkmhmnehpbmemnif`, 버전 0.1.0. 1차 제출(2026-10-17)은 **거절**: "Spam and Placement in the Store / Yellow Argon — 설명에 과도한 키워드(기관 이름 12개 나열)". 설명에서 기관 이름을 모두 빼고 같은 날 재제출 → **Pending review** (심사는 보통 며칠~몇 주). **심사 중에는 항목을 고치지 않는다.** 승인되면 30일 안에 게시(Publish)해야 한다. 스토어 ID는 서버 `ALLOWED_ORIGIN`에 등록 완료 |
+| 웹스토어 항목 | **있음. 게시됨(public, 2026-10-19), 심사 통과 버전 0.1.0·0.1.1.** (아래는 1차 제출 경과) 항목 ID `poicbfndbnffkpkmmkmhmnehpbmemnif`, 버전 0.1.0. 1차 제출(2026-10-17)은 **거절**: "Spam and Placement in the Store / Yellow Argon — 설명에 과도한 키워드(기관 이름 12개 나열)". 설명에서 기관 이름을 모두 빼고 같은 날 재제출 → **Pending review** (심사는 보통 며칠~몇 주). **심사 중에는 항목을 고치지 않는다.** 승인되면 30일 안에 게시(Publish)해야 한다. 스토어 ID는 서버 `ALLOWED_ORIGIN`에 등록 완료 |
 | Railway 중계 | **배포됨 (2026-10-17).** 프로젝트 `ldry-scrtry` → 서비스 `relay`, 주소 `https://relay-production-4d72.up.railway.app`, **Free 요금제**. 변수 5개 등록(키는 stdin으로, Seal 안 함 — 계정 사용자가 1명뿐이라 사용자 결정). `ALLOWED_ORIGIN`은 로컬 로드 ID(`iieapegdhcfmnhgimjhgolgaiffmhbij`, `manifest.json`의 개발용 `key`로 고정 — 폴더 이름·위치가 바뀌어도 같다)와 스토어 ID(`poicbfndbnffkpkmmkmhmnehpbmemnif`) 두 개 (다른 Origin은 403). **`key`는 스토어용 zip에 넣지 않는다**: `npm run package`가 뺀다. 폴더 이름이 바뀌면 Railway 연결도 끊기므로 `railway link -p ldry-scrtry -e production -s relay`로 다시 잇는다 `DAILY_CAP=5000`, `PER_IP_PER_MIN=30`, `RELAY_ENABLED=true`. 리전은 Southeast Asia(싱가포르) 유지 — 미국 서부가 2~3배 빠르지만 사용자 결정 대기 |
 | GitHub | https://github.com/Dorazeeing/ldry-scrtry (**비공개**로 바꿈, 사용자). 웹스토어·Railway는 공개 저장소를 요구하지 않는다(Railway는 CLI 업로드). 처리방침 페이지를 GitHub Pages로 올릴 수 없다 → 다른 곳(예: Vercel)에 둔다. 동의 문구·처리방침에 "코드를 공개한다"고 쓰지 않는다 |
 
