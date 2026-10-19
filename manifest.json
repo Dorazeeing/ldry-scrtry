@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ldry-scrtry",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "정부24와 민원 서류를 발급하는 기관 사이트에서 다음에 누를 곳을 큰 테두리로 알려 주는 비공식 길잡이입니다. 정부24·행정안전부와 관계없습니다.",
   "minimum_chrome_version": "116",
   "permissions": [

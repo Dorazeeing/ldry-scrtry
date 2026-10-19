@@ -1,6 +1,6 @@
 {
   "name": "ldry-scrtry",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "정부24 이용을 돕는 비공식 길잡이 (크롬 확장)",
   "type": "module",
