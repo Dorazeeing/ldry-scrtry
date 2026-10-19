@@ -114,8 +114,8 @@ test('정부24 밖 사이트는 버튼 둘째 줄 글(detail)도 보내지 않�
   assert.equal(hometax.candidates[0].detail, '');
   // 이름의 일부인 짧은 서류·동작 낱말은 보낸다 (「가족관계 / 증명서」), 사람·회사 이름은 막는다
   const card = (detail) => cleanGuidePayload({ page: { ...page, path: 'efamily.scourt.go.kr/index.jsp' }, candidates: [{ ...candidates[0], detail }], pressed: [] }).candidates[0].detail;
-  for (const ok of ['증명서', '등본', '등록부정정', '성·본창설', '진위확인', '다운로드']) assert.equal(card(ok), ok, ok);
-  for (const no of ['홍길동 (개인)', '가나다상사', '김철수', '내 주소가 바뀌어 온 기록이 나오는 서류예요 확인']) assert.equal(card(no), '', no);
+  for (const ok of ['증명서', '등본', '등록부정정', '성·본창설', '진위확인', '다운로드', '발급하기', '신청하기', '바로가기', '조회하기', '열람', '인쇄', '출력', '방법', '절차', '내역', '현황', '목록']) assert.equal(card(ok), ok, ok);
+  for (const no of ['홍길동 (개인)', '가나다상사', '가나다서비스', '김철수', '내 주소가 바뀌어 온 기록이 나오는 서류예요 확인']) assert.equal(card(no), '', no);
   assert.equal(hometax.candidates[0].label, '나의 정보');
   // 정부24는 그대로 보낸다
   const gov = cleanGuidePayload({ page: { ...page, path: 'www.gov.kr/mw/AA020InfoCappView.do' }, candidates, pressed: [] });
