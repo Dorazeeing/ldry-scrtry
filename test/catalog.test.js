@@ -106,3 +106,36 @@ test('글자 맞추기: "증명"·"서류" 같은 흔한 낱말로는 찾지 않
   assert.deepEqual(localSearch('그냥 증명 서류'), []);
   assert.equal(localSearch('결혼 증명')[0].id, 'marriage_cert');
 });
+
+test('사업자등록증명 ↔ 사업자등록증 재발급은 다른 항목이고 서로 구별된다 (2026-10-19 사용자 신고: 재발급을 찾아도 증명만 나왔다)', () => {
+  const proof = findService('business_register');
+  const reissue = findService('business_reissue');
+  assert.equal(proof.name, '사업자등록증명');
+  assert.equal(reissue.name, '사업자등록증 재발급');
+  assert.notEqual(proof.plain, reissue.plain);
+  assert.match(reissue.plain, /잃어버렸|헐어/);
+  // 글자 맞추기(중계가 안 될 때): 쓴 말에 맞는 쪽이 1순위, 「사업자등록증」만 적으면 둘 다 보인다
+  for (const q of ['사업자 등록 재발급', '사업자등록증 재발급', '사업자등록증 잃어버렸어요']) assert.equal(localSearch(q)[0].id, 'business_reissue', q);
+  assert.equal(localSearch('사업자등록 증명 필요해요')[0].id, 'business_register');
+  const both = localSearch('사업자등록증').map((c) => c.id);
+  assert.ok(both.includes('business_reissue') && both.includes('business_register'));
+  // 목표 문장도 서로 다르다 (안내가 엉뚱한 메뉴로 가지 않게)
+  assert.match(goalFor('business_reissue').goal, /사업자등록증 재발급/);
+  assert.match(goalFor('business_register').goal, /사업자등록증명 발급/);
+  // 「사업자등록 증명」으로 적어도 같은 서류로 안다 (예전 이름)
+  assert.equal(namedButMissing('사업자등록 증명'), false);
+});
+
+test('정부24 공지에 이름이 있던 서류가 목록에 있다 (자동차등록증 재발급·건설기계 등록원부·난임부부 시술비 지원 신청)', () => {
+  assert.equal(localSearch('자동차등록증 재발급')[0].id, 'car_license_reissue');
+  assert.equal(localSearch('굴착기 등록 서류')[0].id, 'construction_machine_register');
+  assert.equal(localSearch('난임 시술비')[0].id, 'infertility_support');
+  assert.equal(localSearch('여권 재발급')[0].id, 'passport_reissue', '「재발급」 낱말만으로 다른 재발급이 1순위가 되면 안 된다');
+  assert.equal(CATALOG.length, 31);
+});
+
+test('Jev 검색 질문에 「증명」과 「재발급」을 구별하라는 설명이 있다', () => {
+  const note = buildSearchRequest('사업자등록증').questions.service.instructions.note;
+  assert.match(note, /증명/);
+  assert.match(note, /재발급/);
+});

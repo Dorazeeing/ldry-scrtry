@@ -137,5 +137,67 @@
     "expected": [
       "social_insurance"
     ]
+  },
+  {
+    "query": "사업자 등록 재발급",
+    "expected": [
+      "business_reissue"
+    ]
+  },
+  {
+    "query": "사업자등록증 재발급",
+    "expected": [
+      "business_reissue"
+    ]
+  },
+  {
+    "query": "사업자등록증 잃어버렸어요",
+    "expected": [
+      "business_reissue"
+    ]
+  },
+  {
+    "query": "사업자등록 증명 필요해요",
+    "expected": [
+      "business_register"
+    ]
+  },
+  {
+    "query": "은행에 낼 사업자 증명서",
+    "expected": [
+      "business_register"
+    ]
+  },
+  {
+    "query": "사업자등록증",
+    "expected": [
+      "business_reissue",
+      "business_register"
+    ],
+    "expectAll": true
+  },
+  {
+    "query": "자동차등록증 재발급",
+    "expected": [
+      "car_license_reissue"
+    ]
+  },
+  {
+    "query": "차 등록증 잃어버렸어",
+    "expected": [
+      "car_license_reissue"
+    ]
+  },
+  {
+    "query": "굴착기 등록 서류",
+    "expected": [
+      "construction_machine_register"
+    ]
+  },
+  {
+    "query": "난임 시술비 지원받고 싶어요",
+    "expected": [
+      "infertility_support"
+    ]
   }
 ]

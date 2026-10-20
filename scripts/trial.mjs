@@ -44,6 +44,8 @@ if (MODE !== 'pages') {
         first: shown[0] ?? '(없음)',
         firstCorrect: s.expected.includes(shown[0]),
         inShown: shown.some((id) => s.expected.includes(id)),
+        // expectAll: 둘 이상이 모두 보여야 하는 말 (예: 「사업자등록증」은 증명과 재발급 둘 다)
+        allShown: s.expectAll ? s.expected.every((id) => shown.includes(id)) : true,
         shown,
         top3: top.map(([k, v]) => `${k} ${v.toFixed(2)}`),
         ms,
@@ -105,6 +107,7 @@ const search = {
   errors: searchRows.length - sOk.length,
   firstCorrect: sOk.filter((r) => r.firstCorrect).length,
   inShown: sOk.filter((r) => r.inShown).length,
+  allShown: sOk.filter((r) => r.allShown).length,
   inputTokens: sOk.reduce((s, r) => s + (r.inputTokens ?? 0), 0),
 };
 const ok = rows.filter((r) => !r.error);
@@ -134,7 +137,7 @@ if (searchRows.length) {
     searchRows.map((r) =>
       r.error
         ? { 적은말: r.query, 결과: `오류 ${r.error}` }
-        : { 적은말: r.query, 일순위: r.first, 맞음: r.firstCorrect ? 'O' : 'X', 후보안: r.inShown ? 'O' : 'X', 보여준것: r.shown.join(', '), ms: r.ms },
+        : { 적은말: r.query, 일순위: r.first, 맞음: r.firstCorrect ? 'O' : 'X', 후보안: r.inShown ? 'O' : 'X', 모두: r.allShown ? 'O' : 'X', 보여준것: r.shown.join(', '), ms: r.ms },
     ),
   );
 }

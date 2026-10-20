@@ -41,6 +41,9 @@ export const CATALOG = [
   { id: 'cadastral_map', name: '지적도(임야도)', service: '지적도(임야도)', plain: '땅(산)의 경계와 모양을 그린 지도', aliases: ['지적도', '임야도', '땅 지도', '경계'] },
   { id: 'building_register', name: '건축물대장', service: '건축물대장', plain: '건물(집)의 위치, 넓이, 쓰임새, 주인이 나오는 서류', aliases: ['건물', '집', '건축물', '주택'], site: 'www.eais.go.kr' },
   { id: 'car_register', name: '자동차등록원부', service: '자동차등록원부', plain: '자동차의 주인과 등록 내용이 나오는 서류', aliases: ['자동차', '차', '차량'], site: 'www.car365.go.kr' },
+  { id: 'car_license_reissue', name: '자동차등록증 재발급', service: '자동차등록증 재발급', plain: '잃어버렸거나 헐어서 못 쓰는 자동차등록증(차 서류)을 다시 받는 일 (자동차등록원부를 떼는 것이 아님)', aliases: ['자동차등록증', '차량등록증', '차등록증'], site: 'www.car365.go.kr' },
+  { id: 'construction_machine_register', name: '건설기계 등록원부', service: '건설기계 등록원부', plain: '굴착기, 지게차 같은 건설기계의 주인과 등록 내용이 나오는 서류', aliases: ['건설기계', '굴착기', '지게차', '중장비', '포클레인'], site: 'www.car365.go.kr' },
+  { id: 'infertility_support', name: '난임부부 시술비 지원 신청', service: '난임부부 시술비 지원 신청', plain: '아이를 갖기 어려운 부부가 시술비를 지원받으려고 신청하는 일', aliases: ['난임', '시술비', '인공수정', '시험관', '아기 갖기'], site: 'www.e-health.go.kr' },
   { id: 'passport_reissue', name: '여권 재발급', service: '여권 재발급', plain: '여권을 다시 만드는 신청', aliases: ['여권', '해외', '외국'] },
   { id: 'local_tax_cert', name: '지방세 납세증명', service: '지방세 납세증명', plain: '지방세(재산세, 자동차세 등)를 밀리지 않고 냈다는 증명', aliases: ['지방세', '재산세', '자동차세', '세금'], site: 'www.wetax.go.kr' },
   { id: 'local_tax_items', name: '지방세 세목별 과세증명', service: '지방세 세목별 과세증명', plain: '재산세, 자동차세 같은 지방세가 종류별로 얼마 매겨졌는지 나오는 증명', aliases: ['과세증명', '세목별', '재산세'], site: 'www.wetax.go.kr' },
@@ -50,7 +53,10 @@ export const CATALOG = [
   { id: 'health_insurance', name: '건강보험 자격득실 확인', service: '건강보험 자격득실 확인', plain: '건강보험에 언제 가입되고 언제 잃었는지(다닌 직장 등) 나오는 서류', aliases: ['건강보험', '의료보험', '자격득실', '직장'], site: 'www.nhis.or.kr' },
   { id: 'farm_business', name: '농업경영체 등록 확인서 교부', service: '농업경영체 등록 확인서 교부', plain: '농사짓는 사람(농업경영체)으로 등록됐다는 확인서', aliases: ['농업', '농사', '농민', '농업경영체'] },
   { id: 'driving_record', name: '운전경력 증명', service: '운전경력 증명', plain: '운전면허를 가진 기간과 교통 위반·사고 기록이 나오는 증명', aliases: ['운전', '면허', '운전경력'], site: 'www.efine.go.kr' },
-  { id: 'business_register', name: '사업자등록 증명', service: '사업자등록 증명', plain: '가게나 회사를 사업자로 등록했다는 증명', aliases: ['사업자', '가게', '장사', '회사'] },
+  // 사업자등록 두 메뉴는 전혀 다른 일이다 (2026-10-19 사용자 신고: 「재발급」을 찾아도 「증명」만 나왔다).
+  // 증명 = 은행·계약 등에 내는 증명서를 떼는 일, 재발급 = 잃어버렸거나 헐어서 사업자등록증 종이를 다시 받는 일.
+  { id: 'business_register', name: '사업자등록증명', service: '사업자등록증명 발급', plain: '가게나 회사를 사업자로 등록했다는 사실을 확인해 주는 증명서 (사업자등록증을 다시 받는 것이 아님)', names: ['사업자등록 증명', '사업자등록증명 발급'], aliases: ['사업자등록 증명', '사업자 증명', '사업자등록증명', '사업자', '가게 증명', '장사', '회사'] },
+  { id: 'business_reissue', name: '사업자등록증 재발급', service: '사업자등록증 재발급', plain: '잃어버렸거나 헐어서 못 쓰게 된 사업자등록증(종이)을 다시 받는 일 (증명서를 떼는 것이 아님)', aliases: ['사업자등록증', '사업자 등록증', '사업자등록 재발급', '사업자 재발급', '사업자등록증 분실', '가게 등록증'] },
   { id: 'graduation_cert', name: '대학교 졸업(예정) 증명', service: '대학교 졸업(예정) 증명', plain: '대학교를 졸업했거나 졸업할 예정이라는 증명', aliases: ['졸업', '대학교', '학교'] },
   { id: 'vaccination_cert', name: '예방접종증명서', service: '예방접종증명', plain: '예방주사를 맞은 기록이 나오는 증명서', aliases: ['예방접종', '예방주사', '백신', '주사'], site: 'nip.kdca.go.kr' },
   { id: 'national_merit', name: '국가유공자 확인', service: '국가유공자 확인', plain: '국가유공자(또는 그 가족)인 것을 확인하는 서류', aliases: ['국가유공자', '보훈', '유공자'], site: 'pmp.mpva.go.kr' },
@@ -128,7 +134,7 @@ export function cleanQuery(text) {
 
 // 키가 없거나 Jev가 실패했을 때 쓰는 글자 맞추기 검색
 // 거의 모든 서류 이름에 들어 있어 맞춰 봐야 소용없는 낱말
-const COMMON_WORDS = new Set(['증명', '증명서', '서류', '확인', '확인서', '발급', '신청', '등록', '교부', '대장']);
+const COMMON_WORDS = new Set(['증명', '증명서', '서류', '확인', '확인서', '발급', '재발급', '신청', '등록', '교부', '대장']);
 
 export function localSearch(query) {
   const q = query.replace(/\s+/g, '');
@@ -162,7 +168,7 @@ export function buildSearchRequest(query) {
         type: 'choice',
         instructions: {
           question: 'Which 정부24 service is the user asking for in `request`?',
-          note: 'The user is an older adult who may not know the official document name and may describe it in everyday words or by what the document shows.',
+          note: 'The user is an older adult who may not know the official document name and may describe it in everyday words or by what the document shows. Some services look alike but are different: a "증명" is a certificate you ask for to show to someone else, while "재발급" means getting a lost or damaged original (such as the 사업자등록증, 자동차등록증 or 여권) issued again. Choose by what the user wants to happen, and when the request could mean two services (for example just "사업자등록증"), give both a real share of the probability.',
         },
         criteria,
       },
