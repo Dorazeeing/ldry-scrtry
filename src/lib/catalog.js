@@ -182,13 +182,22 @@ const DOC_NAME = /(증명서?|등본|초본|대장|확인서?|원부|교부|신�
 // 쉬운 말은 앞 낱말이 조사·말끝으로 끝난다 (「결혼한 거 증명」「소득이 없다는 증명」). 정식 서류 이름은 그렇지 않다 (「제적 등본」「주민등록 초본」)
 const CASUAL_WORD = /(은|는|이|가|을|를|한|던|거)$/;
 
+// 「사업자 등록 재발급」은 「사업자등록증 재발급」에서 「증」 한 글자만 빠진 것이다. 글자가 1~2개 빠졌을 뿐 순서대로 맞으면 같은 서류로 본다
+// (2026-10-20: 신고받은 검색어가 정답을 찾고도 "목록에 없어요"가 떴다). 「제적등본」「전입신고」는 어느 이름과도 순서대로 맞지 않아 그대로 걸린다.
+function nearName(q, v) {
+  if (q.length < 4 || v.length < q.length || v.length - q.length > 2) return false;
+  let i = 0;
+  for (const ch of v) if (ch === q[i]) i += 1;
+  return i === q.length;
+}
+
 export function namedButMissing(query) {
   const q = query.replace(/\s+/g, '');
   if (!DOC_NAME.test(q) || q.length < 4) return false;
   // 2026-10-18: 「결혼한 거 증명」처럼 쉬운 말이 「증명」으로 끝난다고 "목록에 없어요"를 띄우면, 맞는 서류를 찾고도 어르신이 헷갈린다
   if (query.trim().split(/\s+/).slice(0, -1).some((w) => CASUAL_WORD.test(w))) return false;
   return !CATALOG.some((c) =>
-    nameVariants(c).some((v) => v.length >= 2 && (q.includes(v) || v.includes(q))),
+    nameVariants(c).some((v) => v.length >= 2 && (q.includes(v) || v.includes(q) || nearName(q, v))),
   );
 }
 
