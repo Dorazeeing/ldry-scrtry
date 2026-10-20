@@ -41,7 +41,8 @@ function describe(c) {
 
 export function buildRequest({ goal, page, candidates, pressed, site = '정부24' }) {
   const options = {};
-  for (const c of candidates) options[c.label] = describe(c);
+  // 선택지 이름은 겹치면 안 된다 (겹치면 앞의 것이 덮여 사라진다). 겹치면 처음 것만 쓴다 (guide.js joinShortDetail이 먼저 가리지만 한 번 더 지킨다)
+  for (const c of candidates) if (!(c.label in options)) options[c.label] = describe(c);
   options[NONE_OPTION] = 'None of the listed controls moves the user closer to the goal right now.';
 
   return {

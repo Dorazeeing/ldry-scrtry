@@ -121,3 +121,13 @@ test('정부24 밖 사이트는 버튼 둘째 줄 글(detail)도 보내지 않�
   const gov = cleanGuidePayload({ page: { ...page, path: 'www.gov.kr/mw/AA020InfoCappView.do' }, candidates, pressed: [] });
   assert.equal(gov.candidates[0].detail, '홍길동 (개인) 가나다상사');
 });
+
+test('같은 후보는 이름과 둘째 줄이 모두 같을 때만 합친다 (2026-10-19 검수: 「가족관계 / 증명서」가 「가족관계 / 등록부정정」에 가려짐)', () => {
+  const c = (id, label, detail = '') => ({ id, label, detail, kind: 'link', area: 'main' });
+  const raw = [c(0, '가족관계', '증명서'), c(1, '기본', '증명서'), c(2, '가족관계', '등록부정정'), c(3, '제적', '등본'), c(4, '제적', '초본'), c(5, '제적', '초본')];
+  const { candidates } = cleanCandidates(raw);
+  assert.deepEqual(candidates.map((x) => `${x.label}/${x.detail}`), ['가족관계/증명서', '기본/증명서', '가족관계/등록부정정', '제적/등본', '제적/초본']);
+  assert.deepEqual(candidates.map((x) => x.id), [0, 1, 2, 3, 4], '번호는 그대로 (화면에서 그 버튼을 찾는다)');
+  // 선택지 이름 「해당 없음」과 같은 이름은 후보로 쓰지 않는다
+  assert.equal(cleanCandidates([c(0, NONE_OPTION)]).candidates.length, 0);
+});

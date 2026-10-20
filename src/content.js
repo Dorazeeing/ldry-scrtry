@@ -675,11 +675,15 @@
     }
     const map = new Map();
     const candidates = [];
-    const seen = new Map(); // 이름 → 후보 번호
+    // 같은 후보는 이름(첫 줄)과 둘째 줄이 모두 같을 때만 하나로 합친다.
+    // 첫 줄만 보면 「가족관계 / 증명서」와 「가족관계 / 등록부정정」, 「제적 / 등본」과 「제적 / 초본」이 하나로 합쳐져
+    // 화면에서 먼저 나온 것만 서버로 갔다 (정답 카드가 뒤에 있으면 사라질 수 있었다, 2026-10-19 검수).
+    const seen = new Map(); // 이름+둘째 줄 → 후보 번호
     for (const d of [...groups.popup, ...groups.main, ...groups.menu]) {
       const label = d.label.replace(/\s+/g, ' ').trim();
       const box = d.box ?? [d.el];
-      const at = seen.get(label);
+      const key = `${label}\u0000${String(d.detail ?? '').replace(/\s+/g, ' ').trim()}`;
+      const at = seen.get(key);
       if (at !== undefined) {
         // 같은 이름이면 고르는 칸을 남긴다. 2026-10-18 전자가족관계: 신청서의 「혼인관계증명서」(골라짐)가 옆 메뉴의
         // 같은 이름 링크에 밀려 빠지자, AI가 서류를 아직 안 골랐다고 보고 링크를 가리켰다 (누르자 본인 확인이 풀림)
@@ -691,7 +695,7 @@
         continue;
       }
       const id = candidates.length;
-      seen.set(label, id);
+      seen.set(key, id);
       map.set(id, box);
       for (const e of box) labelOf.set(e, label);
       candidates.push({ id, label, detail: d.detail, kind: d.kind, area: d.area, selected: d.selected === true, filled: d.filled === true });
@@ -700,7 +704,7 @@
     // 떠 있는 창의 안내 글 (버튼 이름은 빼고). 예: "회원/비회원 신청가능 서비스입니다."
     const box = dialog ?? layer;
     let popupText = box ? lines(box.innerText).join(' ') : '';
-    for (const l of [...seen.keys()].sort((a, b) => b.length - a.length)) if (l.length > 1) popupText = popupText.split(l).join(' ');
+    for (const l of candidates.map((c) => c.label).sort((a, b) => b.length - a.length)) if (l.length > 1) popupText = popupText.split(l).join(' ');
     popupText = popupText.replace(/\s+/g, ' ').trim().slice(0, 300);
     const page = { title: document.title, headings: headings(dialog ?? document), popupText };
     return { candidates, map, page, dialog: Boolean(box), consent };

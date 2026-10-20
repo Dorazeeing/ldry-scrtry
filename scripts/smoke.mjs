@@ -328,6 +328,15 @@ check(
   `${copyLabel} · ${copyNote} · 클립보드=${clip} · 칸=${typed}`,
 );
 await page.screenshot({ path: join(OUT, '5-search-copy.png') });
+// 5-2d. 두 줄 카드 중 첫 줄이 같은 것(「가족관계」 ×3, 「제적」 ×2)이 하나로 합쳐지지 않고 모두 서버로 간다 (0.1.2)
+const cardsFake = await fake('cards', 'cards.html', 'efamily.scourt.go.kr');
+const cardKeys = Object.keys(cardsFake.asks.at(-1)?.questions.nextControl.criteria ?? {});
+const wantCards = ['가족관계 등록부정정', '제적 등본', '제적 초본', '가족관계 등록창설', '가족관계 증명서', '출생'];
+check(
+  '두 줄 카드: 첫 줄이 같아도 모두 남고, 이름은 첫 줄+둘째 줄로 합쳐 서버에 감 (정답 카드가 뒤에 있어도 사라지지 않음)',
+  wantCards.every((k) => cardKeys.includes(k)) && new Set(cardKeys).size === cardKeys.length,
+  cardKeys.join(', '),
+);
 
 // 5-3. 가리킨 곳을 누르면 그 판단은 버려진다 (민원안내 페이지에서 「발급하기」를 누른 직후 테두리가 사라지고 다시 찾는다)
 since = requests.length;

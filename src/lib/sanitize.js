@@ -79,9 +79,11 @@ export function focusPopup(candidates) {
   return popup.length ? popup : candidates;
 }
 
-// 같은 이름은 처음 것만 남긴다 (content가 본문 영역을 앞에 두고 보낸다).
+// 같은 후보(이름과 둘째 줄이 모두 같은 것)는 처음 것만 남긴다 (content가 본문 영역을 앞에 두고 보낸다).
+// 이름만 보고 합치면 「가족관계 / 증명서」와 「가족관계 / 등록부정정」이 하나가 된다. 둘째 줄을 막기(safeDetail)·이름에 합치기
+// (guide.js joinShortDetail) 전에 여기서 가려야 한다. 그러고도 이름이 겹치면 joinShortDetail이 처음 것만 남긴다.
 export function cleanCandidates(raw) {
-  const seen = new Set([NONE_OPTION]);
+  const seen = new Set();
   const out = [];
   let dropped = 0;
   for (const c of Array.isArray(raw) ? raw : []) {
@@ -90,12 +92,14 @@ export function cleanCandidates(raw) {
       dropped += 1;
       continue;
     }
-    if (seen.has(label)) continue;
-    seen.add(label);
+    const detail = cleanText(c.detail, MAX_DETAIL);
+    const key = `${label}\u0000${detail}`;
+    if (label === NONE_OPTION || seen.has(key)) continue;
+    seen.add(key);
     out.push({
       id: c.id,
       label,
-      detail: cleanText(c.detail, MAX_DETAIL),
+      detail,
       kind: c.kind,
       area: AREAS.has(c.area) ? c.area : 'main',
       selected: c.selected === true,

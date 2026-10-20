@@ -141,3 +141,26 @@ test('두 줄 카드: 짧은 둘째 줄은 이름에 합치고, 날짜·긴 설�
   assert.equal(new Set(labels).size, labels.length, '이름이 겹치지 않는다');
   assert.equal(prep.candidates.find((c) => c.label === '가족관계 증명서').id, 0, '번호는 그대로 (화면에서 그 버튼을 찾는다)');
 });
+
+test('두 줄 카드가 첫 줄이 같아도 모두 남고, 최종 선택지 이름은 겹치지 않는다 (전자가족관계 첫 화면)', () => {
+  const link = (id, label, detail = '') => ({ id, label, detail, kind: 'link', area: 'main' });
+  const prep = prepareGuide({
+    goalId: 'family_relation',
+    page: { title: '전자가족관계', path: 'efamily.scourt.go.kr/index.jsp', headings: [] },
+    candidates: [
+      link(0, '가족관계', '등록부정정'), link(1, '가족관계', '증명서'), link(2, '제적', '등본'), link(3, '제적', '초본'),
+      link(4, '가족관계', '등록창설'), link(5, '가족관계', '증명서'), link(6, '출생'),
+      link(7, '자료', '홍길동 (개인)'), link(8, '자료', '가나다상사'),
+    ],
+    pressed: [],
+  });
+  const labels = prep.candidates.map((c) => c.label);
+  // 정답 카드가 화면에서 뒤에 있어도 사라지지 않는다
+  assert.ok(labels.includes('가족관계 증명서') && labels.includes('가족관계 등록부정정') && labels.includes('가족관계 등록창설'));
+  assert.ok(labels.includes('제적 등본') && labels.includes('제적 초본'));
+  assert.equal(new Set(labels).size, labels.length, '이름이 겹치지 않는다');
+  assert.equal(prep.candidates.find((c) => c.label === '가족관계 증명서').id, 1);
+  // 둘째 줄이 사람·회사 이름이면 막혀서 이름이 겹치고, 처음 것만 남는다
+  assert.equal(labels.filter((l) => l === '자료').length, 1);
+  assert.equal(Object.keys(prep.body.questions.nextControl.criteria).length, labels.length + 1);
+});
