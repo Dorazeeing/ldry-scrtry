@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- 시험용 가짜 화면: 검색 칸과 「검색」 단추가 있는 화면. 검색하면 실제 사이트처럼 결과 제목이 바뀐다 (결과 0건).
+     화면이 그대로면 확장은 다시 묻지 않으므로(같은 화면은 저장된 답) 결과 제목이 바뀌어야 새로 묻는다.
+     검색을 두 번 한 뒤에는 검색 칸·단추를 후보에서 빼고, 갈 곳을 못 고르면 "검색으로 두 번 찾아봤는데 못 찾았어요"와
+     「목록에서 다시 고르기」가 떠야 한다 (search_exhausted) -->
+<html lang="ko"><head><meta charset="utf-8"><title>사이트 검색 | 시험 화면</title>
+<style>body{font:16px/1.6 sans-serif;padding:24px}input{font:inherit;width:360px;padding:8px}</style></head>
+<body><main><h2>찾기</h2>
+<input type="text" id="q" placeholder="검색어를 입력하세요"> <button type="button" id="go">검색</button>
+<h3 id="r" hidden></h3>
+<p><a href="#n">공지사항</a> · <a href="#f">자주 묻는 질문</a></p>
+</main>
+<script>
+  let n = 0;
+  document.getElementById('go').addEventListener('click', () => {
+    n += 1;
+    const r = document.getElementById('r');
+    r.hidden = false;
+    r.textContent = `검색 결과 0건 (${n}번째 검색)`;
+  });
+</script>
+</body></html>

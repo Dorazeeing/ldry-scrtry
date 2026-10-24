@@ -132,6 +132,7 @@
         <p class="msg" aria-live="polite"></p>
         <button type="button" class="primary" data-act="copy" hidden></button>
         <p class="copy-note" aria-live="polite"></p>
+        <button type="button" data-act="goto" hidden></button>
         <div class="consent" hidden>
           <ul>
             <li>길잡이는 <b>정부24</b>와 서류를 내려받는 <b>기관 사이트</b>(국세청 홈택스, 건강보험, 가족관계등록시스템 등)에서 켜져요.</li>
@@ -180,6 +181,7 @@
     msg: root.querySelector('.msg'),
     copy: root.querySelector('[data-act="copy"]'),
     copyNote: root.querySelector('.copy-note'),
+    goto: root.querySelector('[data-act="goto"]'),
     goals: root.querySelector('.goals'),
     rescan: root.querySelector('[data-act="rescan"]'),
     stop: root.querySelector('[data-act="stop"]'),
@@ -220,6 +222,7 @@
     ui.copy.dataset.text = copy;
     ui.copy.textContent = copy ? `「${copy}」 글자 복사하기` : '';
     ui.copyNote.textContent = '';
+    ui.goto.hidden = true; // 「바로 가기」는 찾는 단계에서만 다시 띄운다 (offerGoto)
     ui.rescan.hidden = !guiding;
     ui.stop.hidden = !guiding;
     ui.goalLine.textContent = state?.active && state.goalTitle ? `찾는 것: ${state.goalTitle}` : '';
@@ -790,10 +793,111 @@
     }
   }
 
+  // ---------- 찾는 단계에서 막혔을 때 (0.1.3): 바로 가기·목록에서 다시 고르기·계속 찾아보기 ----------
+  // 「바로 가기」 주소는 background가 이미 걸렀지만 여기서도 https이고 길잡이가 뜨는 사이트(매니페스트 matches)인지 다시 본다
+  const GUIDE_HOSTS = new Set(
+    (chrome.runtime.getManifest().content_scripts ?? [])
+      .flatMap((c) => c.matches ?? [])
+      .map((m) => m.replace(/^https:\/\//, '').replace(/\/\*$/, '')),
+  );
+  function safeUrl(url) {
+    try {
+      const u = new URL(String(url ?? ''));
+      return u.protocol === 'https:' && !u.username && !u.password && GUIDE_HOSTS.has(u.host) ? u.href : '';
+    } catch {
+      return '';
+    }
+  }
+  const GOV24_HOME = 'https://www.gov.kr/';
+  const HELP_LINE = '어려우면 가족이나 정부24 고객센터(1588-2188)에 물어봐 주세요.';
+  const gotoText = () => `정부24의 ${state?.goalTitle || '서류'} 안내 화면으로 바로 가기`;
+
+  // 같은 탭에서 연다. 「민원 찾기」 횟수는 처음부터 센다 (가서 또 막히면 그때 다시 센다)
+  async function goTo(url) {
+    const safe = safeUrl(url);
+    if (!safe) return;
+    await send({ type: 'guide/continue' });
+    location.assign(safe);
+  }
+
+  async function relist() {
+    await stop();
+    showList();
+  }
+
+  async function keepLooking() {
+    await send({ type: 'guide/continue' });
+    scan('manual');
+  }
+
+  // 사람이 누른 것만 받는다 (페이지 스크립트가 .click()으로 대신 누르지 못하게). 한 화면에 주 단추(primary)는 하나만
+  function actionButton(text, primary, run) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = text;
+    if (primary) b.className = 'primary';
+    b.addEventListener('click', (e) => e.isTrusted && run());
+    return b;
+  }
+
+  function helpLine() {
+    const p = document.createElement('p');
+    p.className = 'note';
+    p.textContent = HELP_LINE;
+    return p;
+  }
+
+  // 찾는 단계(「민원 찾기」)에서는 「바로 가기」를 덜 눈에 띄는 단추로 함께 보여 준다 (주소가 있을 때만)
+  function offerGoto() {
+    const url = safeUrl(state?.goalUrl);
+    if (!url) return;
+    ui.goto.textContent = gotoText();
+    ui.goto.dataset.url = url;
+    ui.goto.hidden = false;
+  }
+
+  // 「민원 찾기」만 연달아 나와 멈췄다 (background FIND_LIMIT): 서버에 더 묻지 않고 다른 길을 보여 준다
+  function renderStopped() {
+    const url = safeUrl(state?.goalUrl);
+    show({ msg: '여기서는 찾는 서류를 못 찾고 있어요.', guiding: false });
+    const buttons = [];
+    if (url) buttons.push(actionButton(gotoText(), true, () => goTo(url)));
+    buttons.push(actionButton('목록에서 다시 고르기', !url, relist));
+    buttons.push(actionButton('계속 찾아보기', false, keepLooking));
+    ui.goals.replaceChildren(...buttons, helpLine());
+    spoken = [ui.msg.textContent, ...buttons.map((b) => b.textContent), HELP_LINE].join(' ');
+  }
+
+  // 서류를 주지 않는 사이트에서 시작했다 (서버 wrong_site): 정부24로 가는 주 단추 하나. 테두리 없음
+  function renderWrongSite(res) {
+    const url = safeUrl(state?.goalUrl);
+    const go = actionButton(url ? gotoText() : '정부24로 가기', true, () => goTo(url || GOV24_HOME));
+    show({ stage: res.stageText, msg: '아래 단추를 누르면 정부24로 가요.' });
+    ui.goals.replaceChildren(go);
+    spoken = [res.stageText, ui.msg.textContent, go.textContent].join(' ');
+  }
+
+  // 검색을 두 번 해도 못 찾았다 (서버 search_exhausted): 바로 가기·목록에서 다시 고르기
+  function renderExhausted(res) {
+    const url = safeUrl(state?.goalUrl);
+    show({ stage: res.stageText, msg: '검색 말고 다른 길로 가 볼게요. 아래에서 골라 주세요.' });
+    const buttons = [];
+    if (url) buttons.push(actionButton(gotoText(), true, () => goTo(url)));
+    buttons.push(actionButton('목록에서 다시 고르기', !url, relist));
+    ui.goals.replaceChildren(...buttons, helpLine());
+    spoken = [res.stageText, ui.msg.textContent, ...buttons.map((b) => b.textContent), HELP_LINE].join(' ');
+  }
+
   function apply(res) {
     if (!res || res.kind === 'inactive') {
       state = { ...state, active: false };
       renderStart();
+      return;
+    }
+    ui.goals.replaceChildren(); // 멈춤·정부24로 가기 같은 지난 화면의 단추를 지운다
+    if (res.kind === 'stopped') {
+      clearTarget();
+      renderStopped();
       return;
     }
     if (res.kind === 'handoff') {
@@ -816,6 +920,7 @@
           msg: stuckHere ? NO_CHANGE_TEXT(res.label) : `${what} 빨간 테두리로 표시했어요.`,
           copy: searchBox ? state.goalTitle : '',
         });
+        if (res.stage === '민원 찾기') offerGoto();
         pointTo([{ els, tag: '여기를 누르세요' }]);
         return;
       }
@@ -827,7 +932,10 @@
       show({ msg: res.message ?? ERROR_TEXT[res.code] ?? '잠깐 문제가 생겼어요. 「다시 찾기」를 눌러 주세요.' });
       return;
     }
+    if (res.reason === 'wrong_site') return renderWrongSite(res);
+    if (res.reason === 'search_exhausted') return renderExhausted(res);
     show({ stage: res.stageText, msg: '어디를 눌러야 할지 잘 모르겠어요. 가족이나 정부24 고객센터(1588-2188)에 물어봐 주세요.' });
+    if (res.stage === '민원 찾기') offerGoto();
   }
 
   // reason: load·click·change·manual·navigation은 화면이 바뀌었으면 다시 묻는다.
@@ -974,6 +1082,7 @@
     const act = e.target.closest?.('[data-act]')?.dataset.act;
     if (act === 'speak') speak();
     if (act === 'copy') copyText(ui.copy.dataset.text);
+    if (act === 'goto') goTo(ui.goto.dataset.url);
     if (act === 'rescan') scan('manual');
     if (act === 'stop') stop();
     if (act === 'search') search();

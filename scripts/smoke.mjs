@@ -77,15 +77,25 @@ context.on('request', (r) => {
 });
 // 서버에만 있는 목록 항목 흉내 (0.1.3): serverOnly.on이면 새 서버가 목록에 서류를 하나 더 넣은 것처럼 검색·목록 응답 앞에 붙이고,
 // 그 id로 오는 판단 요청은 이 시험의 로컬 중계(목록이 같은 코드)가 아는 id로 바꿔 보낸다. removed면 서버 목록에서 빠진 것처럼 그대로 보낸다
-const SERVER_ONLY = { id: 'smoke_server_only', name: '시험용 새 서류', plain: '서버 목록에만 있는 시험 항목' };
+// url(「바로 가기」 주소)은 이 시험에서만 서버 응답에 넣는다 — 확인 안 된 주소를 목록(catalog.js)에 넣지 않는다
+const SERVER_ONLY = {
+  id: 'smoke_server_only',
+  name: '시험용 새 서류',
+  plain: '서버 목록에만 있는 시험 항목',
+  url: 'https://www.gov.kr/__gvrnmnt24_test__/deeplink.html',
+};
 const serverOnly = { on: false, removed: false };
 let catalogGets = 0; // 확장이 /v1/catalog(목록)를 부른 횟수
+const relayVersions = new Set(); // 확장이 POST에 붙인 X-Ldry-Version 헤더 값
 await context.route(`${RELAY_URL}/**`, async (route) => {
   const req = route.request();
   const path = new URL(req.url()).pathname;
   relayHits += 1;
   if (path === '/v1/catalog') catalogGets += 1;
-  if (req.method() === 'POST') relayRequests.push(req.postDataJSON());
+  if (req.method() === 'POST') {
+    relayRequests.push(req.postDataJSON());
+    relayVersions.add(req.headers()['x-ldry-version'] ?? '(없음)');
+  }
   const headers = { ...req.headers() };
   delete headers.host;
   delete headers['content-length'];
@@ -140,7 +150,7 @@ async function settle(name, { since = requests.length, until = () => true, maxWa
       () => {
         const r = document.querySelector('gvrnmnt24-guide')?.shadowRoot;
         const msg = r?.querySelector('.msg')?.textContent ?? '';
-        return r && !msg.includes('찾고 있어요') && (r.querySelector('.ring') || /모르겠|기다려|문제/.test(msg));
+        return r && !msg.includes("찾고 있어요…") && (r.querySelector(".ring") || /모르겠|기다려|문제|못 찾았어요|못 찾고 있어요|정부24로 가/.test(msg + (r.querySelector(".stage")?.textContent ?? "")));
       },
       null,
       { timeout: 25000 },
@@ -194,7 +204,7 @@ let since = requests.length;
 await shadow('#gvrnmnt24-query').fill('홍길동님 등본');
 await shadow('[data-act="search"]').click();
 // 고정 0.8초로 기다리면 PC가 바쁠 때 답이 늦게 와서 뒤 단계가 한 칸씩 밀린다 (2026-10-25: 부하 평균 25~50에서 6개 연쇄 실패) → 찾는 중이 끝날 때까지 기다린다
-await page.waitForFunction(() => !document.querySelector('gvrnmnt24-guide').shadowRoot.querySelector('.msg').textContent.includes('찾고 있어요'), null, { timeout: 10000 });
+await page.waitForFunction(() => !document.querySelector('gvrnmnt24-guide').shadowRoot.querySelector('.msg').textContent.includes('찾고 있어요…'), null, { timeout: 10000 });
 check(
   '검색: 개인정보처럼 보이면 보내지 않음',
   requests.slice(since).every((b) => !b.questions?.service) && (await shadow('.msg').textContent()).includes('개인정보'),
@@ -204,7 +214,7 @@ check(
 // 2-1b. 서류 이름을 적었는데 목록에 없으면 솔직하게 알린다
 await shadow('#gvrnmnt24-query').fill('제적등본');
 await shadow('[data-act="search"]').click();
-await page.waitForFunction(() => !document.querySelector('gvrnmnt24-guide').shadowRoot.querySelector('.msg').textContent.includes('찾고 있어요'), null, { timeout: 10000 });
+await page.waitForFunction(() => !document.querySelector('gvrnmnt24-guide').shadowRoot.querySelector('.msg').textContent.includes('찾고 있어요…'), null, { timeout: 10000 });
 const missingMsg = await shadow('.msg').textContent();
 check('검색: 목록에 없는 서류 이름은 "목록에 없어요"', missingMsg.includes('목록에 없어요'), missingMsg);
 
@@ -299,7 +309,7 @@ async function fake(name, file, host = 'www.gov.kr') {
   // 고정 3.5초만 기다리면 PC가 바쁠 때 아직 묻는 중이라 요청이 없다 (2026-10-25 두 줄 카드 화면) → 「찾고 있어요」가 끝날 때까지 (최대 10초)
   await page.waitForTimeout(1500);
   await page
-    .waitForFunction(() => !(document.querySelector('gvrnmnt24-guide')?.shadowRoot.querySelector('.msg')?.textContent ?? '').includes('찾고 있어요'), null, { timeout: 10000 })
+    .waitForFunction(() => !(document.querySelector('gvrnmnt24-guide')?.shadowRoot.querySelector('.msg')?.textContent ?? '').includes('찾고 있어요…'), null, { timeout: 10000 })
     .catch(() => {});
   await page.waitForTimeout(500);
   return {
@@ -310,6 +320,8 @@ async function fake(name, file, host = 'www.gov.kr') {
     rings: await shadow('.ring').count(),
   };
 }
+// 안내할 서류를 바꾼다 (설정 창에서 보내는 것과 같은 메시지). 누른 기록·「민원 찾기」 횟수도 처음부터
+const startGoal = (goalId) => popup.evaluate((id) => chrome.runtime.sendMessage({ type: 'guide/start', goalId: id }), goalId);
 // 5-1b. 어느 사이트에서든 같다: 기관 사이트(홈택스 주소)의 로그인 방법 고르기도 직접 고르게 넘긴다
 const loginFake = await fake('login', 'login-methods.html', 'www.hometax.go.kr');
 check(
@@ -357,7 +369,10 @@ check(
 );
 await page.screenshot({ path: join(OUT, '5-search-copy.png') });
 // 5-2d. 두 줄 카드 중 첫 줄이 같은 것(「가족관계」 ×3, 「제적」 ×2)이 하나로 합쳐지지 않고 모두 서버로 간다 (0.1.2)
+// 전자가족관계는 가족관계증명서를 주는 사이트다 → 그 서류로 안내한다 (초본이면 wrong_site로 Jev에 묻지 않는다, 0.1.3)
+await startGoal('family_relation');
 const cardsFake = await fake('cards', 'cards.html', 'efamily.scourt.go.kr');
+await startGoal('resident_abstract');
 const cardKeys = Object.keys(cardsFake.asks.at(-1)?.questions.nextControl.criteria ?? {});
 const wantCards = ['가족관계 등록부정정', '제적 등본', '제적 초본', '가족관계 등록창설', '가족관계 증명서', '출생'];
 check(
@@ -561,6 +576,27 @@ check(
   serverChoices.includes(SERVER_ONLY.name) && goalLine === `찾는 것: ${SERVER_ONLY.name}` && serverStart.ringShown && sentGoalIds.includes(SERVER_ONLY.id),
   `${goalLine} · 테두리 ${serverStart.ringShown} · 보낸 goalId ${sentGoalIds.join(',')}`,
 );
+// 9-2b. 「바로 가기」 (0.1.3): 주소가 있는 항목이면 찾는 단계(「민원 찾기」)에서만 덜 눈에 띄는 단추로 보이고,
+//       누르면 같은 탭에서 그 안내 화면을 연다. 민원 안내 화면(위)에는 없다
+const DEEPLINK = SERVER_ONLY.url;
+await context.route(DEEPLINK, (route) =>
+  route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: readFileSync(join(root, 'test/fixtures/deeplink.html'), 'utf8') }),
+);
+const gotoOnInfo = await shadow('[data-act="goto"]').isVisible();
+await fake('find-step', 'no-change.html'); // 「민원 찾기」 단계 화면
+const gotoBtn = shadow('[data-act="goto"]');
+const gotoShown = await gotoBtn.isVisible();
+const gotoLabel = gotoShown ? await gotoBtn.textContent() : '';
+const gotoPrimary = gotoShown && (await gotoBtn.evaluate((b) => b.classList.contains('primary')));
+await page.screenshot({ path: join(OUT, '9-goto.png') });
+if (gotoShown) await gotoBtn.click();
+await page.waitForURL(DEEPLINK, { timeout: 10000 }).catch(() => {});
+check(
+  '바로 가기: 찾는 단계에서만 보조 단추로 보이고(민원 안내 화면에는 없음), 누르면 같은 탭에서 그 안내 화면으로',
+  !gotoOnInfo && gotoShown && !gotoPrimary && gotoLabel === `정부24의 ${SERVER_ONLY.name} 안내 화면으로 바로 가기` && page.url() === DEEPLINK,
+  `민원 안내 화면에서 보임=${gotoOnInfo} · 「${gotoLabel}」 · 주 단추=${gotoPrimary} · ${page.url()}`,
+);
+await page.waitForTimeout(2500); // 연 화면에서도 안내가 이어진다 (아래 「다시 찾기」가 보이게)
 // 9-3. 서버 목록에서 빠지면(unknown_goal) 안내를 끝내고 다시 고르게 한다
 serverOnly.removed = true;
 await shadow('[data-act="rescan"]').click();
@@ -576,6 +612,83 @@ check(
   `${goneMsg} · 안내 중=${goneState?.active}`,
 );
 serverOnly.on = false;
+
+// 10. 찾는 단계 지킴 (0.1.3, src/lib/finding.js·background FIND_LIMIT)
+await page.bringToFront();
+const ringedButtons = async () => ({
+  texts: await shadow('.goals button').allTextContents(),
+  primary: await shadow('.goals button.primary').count(),
+  note: (await shadow('.goals .note').allTextContents()).join(' '),
+});
+// 10-1. 그 서류를 주지 않는 기관 사이트에서 「사이트가기」 없이 시작하면 서버가 Jev에 묻지 않고, 「정부24로 가기」 주 단추 하나 (테두리 없음)
+await startGoal('resident_abstract');
+const wrongFake = await fake('wrong-site', 'agency-home.html', 'www.car365.go.kr');
+const wrongUi = await ringedButtons();
+await page.screenshot({ path: join(OUT, '10-wrong-site.png') });
+check(
+  '다른 사이트에서 시작: 서버가 Jev에 묻지 않고 "정부24에서 시작" 안내와 「정부24로 가기」 주 단추 하나, 테두리 없음',
+  wrongFake.asks.length === 0 && wrongFake.stage.includes('정부24에서 시작하도록') && wrongUi.texts.join('|') === '정부24로 가기' && wrongUi.primary === 1 && wrongFake.rings === 0,
+  `Jev ${wrongFake.asks.length}건 · ${wrongFake.stage} · ${wrongUi.texts.join('|')} · 테두리 ${wrongFake.rings}`,
+);
+// 10-2. 검색 단추를 두 번 누른 뒤에는 검색 칸·단추를 Jev 후보에서 빼고, 갈 곳을 못 고르면 "검색으로 두 번 찾아봤는데…"와 「목록에서 다시 고르기」
+await startGoal('resident_abstract');
+await fake('search-again', 'search-again.html');
+since = requests.length;
+for (const sel of ['#q', '#go', '#q', '#go']) {
+  await page.click(sel);
+  await page.waitForTimeout(400);
+}
+await page
+  .waitForFunction(() => (document.querySelector('gvrnmnt24-guide').shadowRoot.querySelector('.stage')?.textContent ?? '').includes('검색으로 두 번'), null, { timeout: 15000 })
+  .catch(() => {});
+const exStage = await shadow('.stage').textContent();
+const exUi = await ringedButtons();
+const exLastKeys = Object.keys(requests.slice(since).filter((b) => b.questions?.nextControl).at(-1)?.questions.nextControl.criteria ?? {});
+await page.screenshot({ path: join(OUT, '10-search-exhausted.png') });
+check(
+  '검색을 두 번 해도 못 찾음: 검색 칸·단추를 빼고 물은 뒤 "검색으로 두 번 찾아봤는데 못 찾았어요"와 「목록에서 다시 고르기」(주 단추)',
+  exStage.includes('검색으로 두 번 찾아봤는데 못 찾았어요') && exUi.texts.includes('목록에서 다시 고르기') && exUi.primary === 1 &&
+    exLastKeys.length > 0 && !exLastKeys.some((k) => k === '검색' || k.includes('검색어')),
+  `${exStage} · ${exUi.texts.join('|')} · 마지막 후보 ${exLastKeys.join(', ')}`,
+);
+// 10-3. 「민원 찾기」라는 답이 8번 연달아 오면 멈춘다: 테두리를 지우고 서버에 더 묻지 않으며 다른 길을 보여 준다
+await startGoal('resident_abstract');
+const askedBefore = relayRequests.filter((b) => b.goalId).length;
+await fake('stop-screen', 'no-change.html');
+const isStopped = async () => (await shadow('.msg').textContent()).includes('못 찾고 있어요');
+for (let i = 0; i < 10 && !(await isStopped()); i += 1) {
+  await shadow('[data-act="rescan"]').click();
+  await page.waitForTimeout(300);
+  await page
+    .waitForFunction(() => !document.querySelector('gvrnmnt24-guide').shadowRoot.querySelector('.msg').textContent.includes('찾고 있어요…'), null, { timeout: 10000 })
+    .catch(() => {});
+}
+const askedUntilStop = relayRequests.filter((b) => b.goalId).length - askedBefore;
+const stopUi = await ringedButtons();
+const stopRings = await shadow('.ring').count();
+const rescanHidden = await shadow('[data-act="rescan"]').isHidden();
+await page.screenshot({ path: join(OUT, '10-stopped.png') });
+check(
+  '「민원 찾기」만 8번 연달아: 멈춤 화면 — 테두리 없음, 「목록에서 다시 고르기」(주)·「계속 찾아보기」, 고객센터 안내, 「다시 찾기」 숨김',
+  (await isStopped()) && askedUntilStop === 8 && stopRings === 0 && stopUi.texts.join('|') === '목록에서 다시 고르기|계속 찾아보기' &&
+    stopUi.primary === 1 && stopUi.note.includes('1588-2188') && rescanHidden,
+  `서버에 물은 수 ${askedUntilStop} · ${stopUi.texts.join('|')} · 테두리 ${stopRings} · 다시 찾기 숨김=${rescanHidden}`,
+);
+const relayAtStop = relayRequests.length;
+await page.reload({ waitUntil: 'domcontentloaded' });
+await page.waitForTimeout(3000);
+check('멈춘 동안은 쪽을 다시 열어도 서버에 묻지 않음', relayRequests.length === relayAtStop && (await isStopped()), `${relayRequests.length - relayAtStop}건`);
+const stopPopup = await popup.evaluate(() => chrome.runtime.sendMessage({ type: 'popup/state' }));
+since = requests.length;
+await shadow('.goals button').filter({ hasText: '계속 찾아보기' }).click();
+const resumed = await settle('10-resumed', { since });
+check(
+  '「계속 찾아보기」를 누르면 다시 서버에 묻고 테두리를 그림 (설정 창에도 멈춤이 보였다)',
+  resumed.requestsSent > 0 && resumed.ringShown && stopPopup?.stopped === true,
+  `요청 ${resumed.requestsSent}건 · 테두리 ${resumed.ringShown} · 설정 창 멈춤=${stopPopup?.stopped}`,
+);
+const manifestVersion = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')).version;
+check('확장이 중계 요청마다 X-Ldry-Version(매니페스트 버전)을 붙임', relayVersions.size === 1 && relayVersions.has(manifestVersion), [...relayVersions].join(', '));
 
 // 개인정보·형식 점검 (보낸 모든 요청)
 const asks = requests.filter((b) => b.questions?.nextControl);

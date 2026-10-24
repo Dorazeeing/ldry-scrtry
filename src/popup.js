@@ -27,7 +27,9 @@ function describe(d) {
 function render(s) {
   setText($('consentState'), s.consented ? '동의했어요.' : '아직 동의하지 않았어요. 정부24 화면의 길잡이 창에서 동의할 수 있어요.', s.consented ? 'ok' : 'bad');
   $('revoke').hidden = !s.consented;
-  setText($('guideState'), s.active ? `안내 중: ${s.goalTitle}` : '안내하고 있지 않아요.');
+  // stopped: 「민원 찾기」만 연달아 나와 서버에 묻지 않고 멈춘 상태 (안내 창에서 「계속 찾아보기」로 풀린다)
+  const guideText = s.active ? `안내 중: ${s.goalTitle}${s.stopped ? ' (찾는 서류를 못 찾아 멈춤)' : ''}` : '안내하고 있지 않아요.';
+  setText($('guideState'), guideText);
   $('pressed').textContent = s.pressed?.length ? `지금까지 누른 곳: ${s.pressed.join(' → ')}` : '';
   $('stop').hidden = !s.active;
   const log = $('log');

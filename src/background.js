@@ -2,10 +2,11 @@
 // 페이지 쪽(content.js)은 storage를 못 본다: storage 접근을 TRUSTED_CONTEXTS로 막는다.
 // 동의하기 전에는 아무것도 밖으로 보내지 않는다 (웹스토어 Disclosure 정책).
 
-import { DEFAULT_GOAL_ID, cleanPublicItems, cleanQuery, findService, goalFor, publicItem } from './lib/catalog.js';
+import { DEFAULT_GOAL_ID, cleanPublicItems, cleanQuery, findService, goalFor, publicItem, safeGuideUrl } from './lib/catalog.js';
+import { isSiteTransition } from './lib/finding.js';
 import { listCatalog, searchCatalog } from './lib/guide.js';
 import { HANDOFF_RESULT, detectHandoff, withoutLoginControls } from './lib/handoff.js';
-import { RUBRIC_VERSION } from './lib/jev.js';
+import { FIND_LIMIT, RUBRIC_VERSION } from './lib/jev.js';
 import { CONSENT_VERSION, RelayError, callRelay } from './lib/relay.js';
 import { MAX_LABEL, MAX_PRESSED, cleanGuidePayload, cleanPath, cleanText } from './lib/sanitize.js';
 import { ALLOWED_HOSTS } from './lib/sites.js';
@@ -14,6 +15,9 @@ const CACHE_MAX = 200;
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const LOG_MAX = 20;
 const KNOWN_MAX = 300;
+// 「민원 찾기」 단계라는 답이 연달아 FIND_LIMIT(jev.js)번 오면 멈추고 다른 길(바로 가기·목록에서 다시 고르기)을 보여 준다
+const FIND_STAGE = '민원 찾기';
+const STOPPED = { kind: 'stopped' };
 
 const cache = new Map(); // 해시 → { at, result }  (service worker가 꺼지면 사라짐)
 
@@ -99,9 +103,22 @@ async function publicState() {
     goalId: guide.goalId,
     // 고를 때 저장한 이름 (서버에만 있는 서류도 이름이 맞게). 0.1.2 때 저장된 안내 상태에는 없으므로 이 확장의 목록으로 채운다
     goalTitle: guide.goalName || goalFor(guide.goalId).title,
+    // 그 서류의 정부24 안내 화면 (사람이 확인한 주소가 목록에 있을 때만, 「바로 가기」 단추). 꺼낼 때도 다시 본다
+    goalUrl: safeGuideUrl(guide.goalUrl),
+    stopped: (guide.findCount ?? 0) >= FIND_LIMIT,
     consented: await hasConsent(),
     collapsed: guide.collapsed === true,
   };
+}
+
+// 누른 기록은 8개만 둔다. 다만 다른 사이트로 넘어간 단추(「사이트가기」 등)가 밀려나게 되면 맨 앞에 남긴다:
+// 서버가 그 기록으로 "넘어온 사람"을 알아보고 정부24로 돌려보내지 않는다 (finding.js wrongSite)
+function keepPressed(list) {
+  if (list.length <= MAX_PRESSED) return list;
+  const kept = list.slice(-MAX_PRESSED);
+  if (kept.some(isSiteTransition)) return kept;
+  const hop = list.slice(0, -MAX_PRESSED).reverse().find(isSiteTransition);
+  return hop ? [hop, ...kept.slice(1)] : kept;
 }
 
 const NO_CONSENT = { kind: 'error', code: 'no_consent' };
@@ -115,6 +132,8 @@ async function ask(msg, sender) {
   if (!(await hasConsent())) return NO_CONSENT;
   const guide = await getGuide();
   if (!guide.active) return { kind: 'inactive' };
+  // 「민원 찾기」만 연달아 나와 멈춘 동안은 서버에 묻지 않는다 (「계속 찾아보기」·바로 가기·새 서류로 풀린다)
+  if ((guide.findCount ?? 0) >= FIND_LIMIT) return { ...STOPPED };
   // 주소는 페이지가 보낸 값이 아니라 크롬이 알려 준 sender.url을 쓴다
   const clean = cleanGuidePayload({
     page: { ...msg.page, path: cleanPath(sender.url) },
@@ -143,6 +162,11 @@ async function ask(msg, sender) {
     if (result?.kind !== 'error') cache.set(hash, { at: Date.now(), result });
     if (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value);
     await log({ path: clean.page.path, candidates: clean.candidates.length, latencyMs, kind: result.kind, label: result.label, stage: result.stage });
+    // 서버의 새 답(저장된 답은 세지 않음)이 「민원 찾기」면 하나 세고, 다른 단계면 처음부터. 단계가 없는 답(넘김·오류 등)은 그대로 둔다
+    const before = guide.findCount ?? 0;
+    const findCount = result?.stage === FIND_STAGE ? before + 1 : result?.stage ? 0 : before;
+    if (findCount !== before) await setGuide({ findCount });
+    if (findCount >= FIND_LIMIT) return { ...STOPPED };
     return { ...result, latencyMs };
   } catch (err) {
     await log({ path: clean.page.path, error: err?.code ?? 'server', status: err?.status });
@@ -232,9 +256,14 @@ async function handle(msg, sender) {
       const item = (await knownItem(id)) ?? (bundled ? publicItem(bundled) : null);
       if (!item) return { kind: 'error', code: 'unknown_goal' };
       if (!(await hasConsent())) return NO_CONSENT;
-      await setGuide({ active: true, goalId: id, goalName: item.name, pressed: [] });
+      await setGuide({ active: true, goalId: id, goalName: item.name, goalUrl: safeGuideUrl(item.url), findCount: 0, pressed: [] });
       return publicState();
     }
+    case 'guide/continue':
+      // 멈춤 화면의 「계속 찾아보기」·「바로 가기」: 「민원 찾기」 횟수를 처음부터 센다
+      if (!page) break;
+      await setGuide({ findCount: 0 });
+      return publicState();
     case 'ui/collapsed':
       if (!page) break;
       await setGuide({ collapsed: msg.value === true });
@@ -247,7 +276,7 @@ async function handle(msg, sender) {
       const label = cleanText(msg.label, MAX_LABEL);
       const guide = await getGuide();
       if (label && guide.active && guide.pressed.at(-1) !== label) {
-        await setGuide({ pressed: [...guide.pressed, label].slice(-MAX_PRESSED) });
+        await setGuide({ pressed: keepPressed([...guide.pressed, label]) });
       }
       return { ok: true };
     }
