@@ -7,7 +7,7 @@
 
 import http from 'node:http';
 import { pathToFileURL } from 'node:url';
-import { guideNext, searchCatalog } from '../src/lib/guide.js';
+import { guideNext, listCatalog, searchCatalog } from '../src/lib/guide.js';
 import { JevError, callJev } from '../src/lib/jev.js';
 
 export const MAX_BODY = 64 * 1024;
@@ -85,7 +85,18 @@ function readBody(req) {
   });
 }
 
+// 확장 버전 (0.1.3부터 X-Ldry-Version 헤더). 없거나 모양이 틀리면 '' = 0.1.2 이하로 본다.
+// 0.1.2가 헷갈릴 새 동작만 이 값으로 가른다 (guide.js atLeast). 2026-10-25 지금 가르는 곳은 없다 — 새 응답은 모두 0.1.2와 맞는다
+export function clientVersion(req) {
+  const v = req.headers['x-ldry-version'];
+  return typeof v === 'string' && /^\d{1,3}(\.\d{1,3}){1,3}$/.test(v.trim()) ? v.trim() : '';
+}
+
 const dayOf = (ms) => new Date(ms + 9 * 3600 * 1000).toISOString().slice(0, 10); // 한국 날짜 기준
+
+// 주소 → 받는 방법. /v1/catalog는 0.1.3에서 더함 (0.1.2 확장은 안 부른다 — 있던 응답은 그대로).
+// 목록도 POST다: 확장 service worker의 GET에는 Origin 헤더가 붙지 않아(2026-10-25 확인) Origin 확인을 다른 주소와 같게 할 수 없다
+const ROUTES = { '/v1/guide/next': 'POST', '/v1/catalog/search': 'POST', '/v1/catalog': 'POST' };
 
 export function createRelay({
   apiKey,
@@ -136,12 +147,18 @@ export function createRelay({
       send(res, 200, { ok: true, enabled });
       return 200;
     }
-    const routes = ['/v1/guide/next', '/v1/catalog/search'];
-    if (!routes.includes(url.pathname)) return fail(res, 'not_found');
-    if (req.method !== 'POST') return fail(res, 'method_not_allowed', { Allow: 'POST' });
+    const method = ROUTES[url.pathname];
+    if (!method) return fail(res, 'not_found');
+    if (req.method !== method) return fail(res, 'method_not_allowed', { Allow: method });
     if (!enabled) return fail(res, 'disabled');
     if (allowedOrigins.length && !allowedOrigins.includes(req.headers.origin)) return fail(res, 'forbidden_origin');
     if (overIpLimit(clientIp(req))) return fail(res, 'rate_limited', { 'Retry-After': '60' });
+
+    // 전체 민원 목록 (0.1.3 확장의 「목록에서 직접 고르기」). Jev를 부르지 않으므로 하루 상한은 세지 않는다
+    if (url.pathname === '/v1/catalog') {
+      send(res, 200, listCatalog());
+      return 200;
+    }
 
     let input;
     try {
@@ -155,7 +172,8 @@ export function createRelay({
     try {
       if (url.pathname === '/v1/guide/next') {
         if (typeof input.goalId !== 'string' || !input.page || typeof input.page !== 'object') return fail(res, 'bad_request');
-        const out = await guideNext(input, capped);
+        // 확장 버전은 본문이 아니라 헤더에서 읽는다 (본문의 clientVersion은 덮어씀)
+        const out = await guideNext({ ...input, clientVersion: clientVersion(req) }, capped);
         if (out.error) return fail(res, out.error);
         send(res, 200, out.result);
         return 200;

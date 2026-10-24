@@ -8,7 +8,7 @@
 // names: 같은 서류의 다른 공식 표기 (목록에 있는지 확인할 때, 이미 그 서류 화면인지 볼 때 씀)
 // picks: 신청서에서 서류 종류를 고르는 칸의 짧은 이름. 서류 이름·names와 같은 이름의 고르는 칸만 길잡이가 가리킨다 (handoff.js, D-11)
 
-import { NONE_OPTION, cleanText, looksPersonal } from './sanitize.js';
+import { NONE_OPTION, cleanText, cutText, looksPersonal } from './sanitize.js';
 import { ALLOWED_HOSTS, siteFor } from './sites.js';
 
 export const CATALOG = [
@@ -101,6 +101,30 @@ export function publicItem(c) {
   const item = { id: c.id, name: c.name, plain: c.plain };
   if (offsite(c)) item.offsiteName = siteFor(c.site)?.name ?? c.site;
   return item;
+}
+
+// 목록 항목 id 모양. 영문 소문자로 시작한다 (「__proto__」「constructor」 같은 이름이 끼어들 틈을 줄인다)
+export const ITEM_ID = /^[a-z][a-z0-9_]{0,39}$/;
+const MAX_ITEM_NAME = 40;
+const MAX_ITEM_PLAIN = 120;
+
+// 서버가 알려 준 목록 항목을 확장이 기억하기 전에 거른다 (0.1.3부터 확장은 서버 목록을 믿는다: 서버에만 새로 넣은 서류도 고를 수 있게).
+// id는 정해진 모양만, 이름·사이트 이름은 cleanText(개인정보처럼 보이면 버림, 길이 자름), 쉬운 설명은 정리·자르기만 (cutText:
+// 「…떼는 것이 아님」이 「○○님」 규칙에 걸려 설명 3개가 사라졌다). 이름이 없거나 같은 id가 또 나오면 뺀다.
+export function cleanPublicItems(list) {
+  const out = [];
+  const seen = new Set();
+  for (const it of Array.isArray(list) ? list : []) {
+    const id = typeof it?.id === 'string' ? it.id : '';
+    const name = cleanText(it?.name, MAX_ITEM_NAME);
+    if (!ITEM_ID.test(id) || !name || seen.has(id)) continue;
+    seen.add(id);
+    const item = { id, name, plain: cutText(it.plain, MAX_ITEM_PLAIN) };
+    const offsiteName = cleanText(it.offsiteName, MAX_ITEM_NAME);
+    if (offsiteName) item.offsiteName = offsiteName;
+    out.push(item);
+  }
+  return out;
 }
 
 // Jev에 들어가는 목표. 목록에 있는 글만으로 만든다 (어르신이 적은 말은 들어가지 않는다).

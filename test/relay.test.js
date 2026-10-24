@@ -229,3 +229,50 @@ test('중계: 로그인·회원가입 버튼은 Jev 후보에서 뺀다', async 
   assert.ok(!options.includes('로그인'), '로그인은 후보에 없다');
   assert.match(JSON.stringify(seen[0].body.questions.nextControl.instructions), /handles login/);
 });
+
+test('중계: 전체 민원 목록 POST /v1/catalog (0.1.3) — Jev를 부르지 않고, Origin·분당 한도·스위치는 같다', async () => {
+  const { CATALOG } = await import('../src/lib/catalog.js');
+  seen.length = 0;
+  const r = await post(base, '/v1/catalog', {});
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get('access-control-allow-origin'), null, 'CORS 헤더를 주지 않는다');
+  const res = await r.json();
+  assert.equal(res.kind, 'results');
+  assert.equal(res.source, 'list');
+  assert.deepEqual(res.items.map((i) => i.id), CATALOG.map((c) => c.id));
+  assert.ok(res.items.every((i) => i.name && typeof i.plain === 'string'));
+  assert.equal(seen.length, 0, 'Jev를 부르지 않는다');
+  // 다른 Origin은 403, GET은 405 (확장의 GET에는 Origin이 안 붙으므로 받지 않는다)
+  assert.equal((await post(base, '/v1/catalog', {}, { Origin: 'https://evil.example' })).status, 403);
+  const g = await fetch(`${base}/v1/catalog`, { headers: { Origin: ORIGIN } });
+  assert.equal(g.status, 405);
+  assert.equal(g.headers.get('allow'), 'POST');
+  // 분당 한도·끄는 스위치
+  const limited = await start({ perIpPerMin: 1 });
+  assert.equal((await post(limited, '/v1/catalog', {})).status, 200);
+  assert.equal((await post(limited, '/v1/catalog', {})).status, 429);
+  const off = await start({ enabled: false });
+  assert.equal((await post(off, '/v1/catalog', {})).status, 503);
+  // 하루 상한은 세지 않는다 (Jev를 부르지 않으므로)
+  const capped = await start({ dailyCap: 1 });
+  for (let i = 0; i < 3; i += 1) assert.equal((await post(capped, '/v1/catalog', {})).status, 200);
+  assert.equal((await post(capped, '/v1/guide/next', guideBody)).status, 200, '목록을 여러 번 받아도 판단 요청은 그대로 된다');
+});
+
+test('중계: 확장 버전은 X-Ldry-Version 헤더로 읽고, 없으면 0.1.2 이하로 본다', async () => {
+  const { clientVersion } = await import('../server/relay.js');
+  const { atLeast } = await import('../src/lib/guide.js');
+  const req = (v) => ({ headers: v === undefined ? {} : { 'x-ldry-version': v } });
+  assert.equal(clientVersion(req('0.1.3')), '0.1.3');
+  assert.equal(clientVersion(req(' 0.1.10 ')), '0.1.10');
+  for (const bad of [undefined, '', 'abc', '0.1.3; drop', '1', '0.1.3.4.5']) assert.equal(clientVersion(req(bad)), '', String(bad));
+  assert.equal(atLeast('', '0.1.3'), false, '헤더 없음 = 0.1.2 이하');
+  assert.equal(atLeast('0.1.2', '0.1.3'), false);
+  assert.equal(atLeast('0.1.3', '0.1.3'), true);
+  assert.equal(atLeast('0.1.10', '0.1.3'), true, '숫자로 견준다');
+  assert.equal(atLeast('0.2', '0.1.3'), true);
+  // 헤더가 있어도 없어도 지금 응답은 같다 (0.1.2와 맞는다)
+  const withHeader = await post(base, '/v1/guide/next', guideBody, { 'X-Ldry-Version': '0.1.3' });
+  const without = await post(base, '/v1/guide/next', guideBody);
+  assert.deepEqual(await withHeader.json(), await without.json());
+});

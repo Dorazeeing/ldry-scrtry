@@ -20,6 +20,14 @@ test('중계 호출: 주소·방법·본문, 키 헤더는 없다', async () => 
   assert.deepEqual(Object.keys(seen.init.headers), ['Content-Type'], 'Authorization 같은 헤더가 없다');
 });
 
+test('중계 호출: 확장 버전을 X-Ldry-Version 헤더로 보낸다 (0.1.3부터, 크롬 밖에서는 없음)', async () => {
+  let seen;
+  await callRelay('/v1/guide/next', {}, { version: '0.1.3', fetchImpl: async (url, init) => ((seen = init), ok({})) });
+  assert.deepEqual(seen.headers, { 'Content-Type': 'application/json', 'X-Ldry-Version': '0.1.3' });
+  await callRelay('/health', undefined, { version: '0.1.3', fetchImpl: async (url, init) => ((seen = init), ok({})) });
+  assert.deepEqual(seen.headers, { 'X-Ldry-Version': '0.1.3' });
+});
+
 test('중계 호출: 본문이 없으면 GET (/health)', async () => {
   let seen;
   await callRelay('/health', undefined, { fetchImpl: async (url, init) => ((seen = init), ok({ ok: true })) });

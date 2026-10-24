@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: ldry-scrtry 중계 (Jev 판단 전용)
-  version: 0.1.0
+  version: 0.2.0
   description: |
     크롬 확장 ldry-scrtry(정부24 길잡이, 비공식)가 TypeSafe Jev를 부르기 위한 **전용** 중계.
     - Jev에 보낼 질문과 목표 문장은 서버가 만든다. 확장은 `goalId`(목록 id)와 걸러진 화면 정보만 보낸다 → 범용 Jev 중계로 쓸 수 없다 (TypeSafe MCA §2.3(a)).
@@ -33,6 +33,8 @@ paths:
   /v1/guide/next:
     post:
       summary: 다음에 누를 곳 판단
+      parameters:
+        - $ref: '#/components/parameters/LdryVersion'
       description: 확장이 모은 화면 후보 중 하나를 Jev가 고르고, 서버 정책(확률 0.35 이상)으로 가리킬지 정한다.
       requestBody:
         required: true
@@ -55,6 +57,8 @@ paths:
   /v1/catalog/search:
     post:
       summary: 어르신이 적은 말 → 민원 목록 후보
+      parameters:
+        - $ref: '#/components/parameters/LdryVersion'
       description: 적은 말은 목록에서 찾는 데만 쓴다. Jev가 실패하면 글자 맞추기로 찾는다 (source=local).
       requestBody:
         required: true
@@ -77,7 +81,42 @@ paths:
         '413': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
         '503': { $ref: '#/components/responses/Error' }
+  /v1/catalog:
+    post:
+      summary: 고를 수 있는 민원 목록 전체 (0.1.3 확장의 「목록에서 직접 고르기」)
+      parameters:
+        - $ref: '#/components/parameters/LdryVersion'
+      description: |
+        서버가 가진 목록(`src/lib/catalog.js`)을 그대로 준다. Jev를 부르지 않으므로 하루 상한은 세지 않는다.
+        Origin 확인·IP별 분당 한도·끄는 스위치는 다른 주소와 같다.
+        **POST인 이유:** 확장 service worker의 GET 요청에는 `Origin` 헤더가 붙지 않아(2026-10-25 확인) Origin 확인을 할 수 없다. 본문은 `{}`이고 읽지 않는다.
+        0.1.3 확장은 동의한 뒤에만 부르고, 받은 항목(id·이름)을 기억해 두었다가 서버에만 있는 서류도 고를 수 있게 한다.
+        0.1.2 이하 확장은 이 주소를 부르지 않는다 (기존 응답은 바뀌지 않음).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object, maxProperties: 0 }
+      responses:
+        '200':
+          description: 전체 목록
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogList' }
+        '403': { $ref: '#/components/responses/Error' }
+        '405': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
 components:
+  parameters:
+    LdryVersion:
+      name: X-Ldry-Version
+      in: header
+      required: false
+      description: |
+        확장 버전 (0.1.3부터 보냄, 예: 0.1.3). 없거나 모양이 틀리면 0.1.2 이하로 본다.
+        0.1.2가 헷갈릴 새 동작만 이 값으로 가른다 (`server/relay.js` clientVersion → `src/lib/guide.js` atLeast). 2026-10-25 지금 가르는 곳은 없다.
+      schema: { type: string, pattern: '^\d{1,3}(\.\d{1,3}){1,3}$' }
   responses:
     Error:
       description: 오류
@@ -150,9 +189,24 @@ components:
         id: { type: integer, description: 'kind=point일 때 가리킬 후보 id' }
         label: { type: string }
         targetKind: { type: string, enum: [button, link, option, input, select] }
-        reason: { type: string, enum: [none, low_probability, unknown_option, no_candidates] }
+        reason: { type: string, enum: [none, low_probability, unknown_option, inconsistent_answer, no_candidates], description: 'inconsistent_answer: Jev 답이 스스로 어긋남 (보내지 않은 이름, 고른 것보다 높은 확률)' }
         stage: { type: [string, 'null'] }
         stageText: { type: string }
+    CatalogItem:
+      type: object
+      required: [id, name, plain]
+      properties:
+        id: { type: string, pattern: '^[a-z][a-z0-9_]{0,39}$', description: '확장은 이 모양이 아닌 id를 버린다' }
+        name: { type: string, maxLength: 40 }
+        plain: { type: string, maxLength: 120 }
+        offsiteName: { type: string, description: '길잡이가 안 뜨는 기관 사이트로 넘어가는 서류면 그 사이트 이름' }
+    CatalogList:
+      type: object
+      required: [kind, items, source]
+      properties:
+        kind: { type: string, const: results }
+        items: { type: array, items: { $ref: '#/components/schemas/CatalogItem' } }
+        source: { type: string, const: list }
     SearchResult:
       type: object
       required: [kind, items, source, missing, query]
@@ -161,14 +215,7 @@ components:
         items:
           type: array
           maxItems: 4
-          items:
-            type: object
-            required: [id, name, plain]
-            properties:
-              id: { type: string }
-              name: { type: string }
-              plain: { type: string }
-              offsiteName: { type: string, description: '길잡이가 안 뜨는 기관 사이트로 넘어가는 서류면 그 사이트 이름' }
+          items: { $ref: '#/components/schemas/CatalogItem' }
         source: { type: string, enum: [jev, local, none] }
         missing: { type: boolean, description: '서류 이름을 적었는데 목록에 없음' }
         query: { type: string }

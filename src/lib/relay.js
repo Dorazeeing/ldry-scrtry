@@ -23,13 +23,18 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // 502·504는 서버가 깨어나는 중일 수 있어 한 번 더 시도한다. 400·403·429·503(꺼짐·상한)은 다시 보내도 소용없다.
 const RETRY_STATUS = new Set([502, 504]);
 
-export async function callRelay(path, body, { fetchImpl = fetch, wait = sleep, timeoutMs = TIMEOUT_MS, base = RELAY_URL } = {}) {
+// 확장 버전을 X-Ldry-Version 헤더로 보낸다 (0.1.3부터). 서버는 헤더가 없으면 0.1.2 이하로 보고,
+// 예전 확장이 헷갈릴 새 동작만 이 값으로 가른다 (server/relay.js clientVersion). 크롬 밖(시험)에서는 보내지 않는다
+const extensionVersion = () => globalThis.chrome?.runtime?.getManifest?.()?.version ?? '';
+
+export async function callRelay(path, body, { fetchImpl = fetch, wait = sleep, timeoutMs = TIMEOUT_MS, base = RELAY_URL, version = extensionVersion() } = {}) {
+  const headers = { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(version ? { 'X-Ldry-Version': version } : {}) };
   for (let attempt = 0; ; attempt += 1) {
     let res;
     try {
       res = await fetchImpl(base + path, {
         method: body === undefined ? 'GET' : 'POST',
-        headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
+        headers,
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: AbortSignal.timeout(timeoutMs),
         cache: 'no-store',

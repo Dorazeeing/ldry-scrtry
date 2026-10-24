@@ -38,6 +38,13 @@ export function looksPersonal(text) {
 export function cleanText(text, max) {
   const s = squash(text);
   if (!s || looksPersonal(s)) return '';
+  return cutText(s, max);
+}
+
+// 정리하고 자르기만 한다 (개인정보 검사 없음). 화면에서 읽은 글이 아니라 우리 서버가 만든 글(목록의 쉬운 설명)에 쓴다.
+// 설명의 「…것이 아님」이 「○○님」 규칙에 걸려 통째로 버려지기 때문이다 (2026-10-25).
+export function cutText(text, max) {
+  const s = squash(text);
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
 

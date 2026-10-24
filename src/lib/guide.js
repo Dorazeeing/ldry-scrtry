@@ -2,7 +2,7 @@
 // 크롬 API를 쓰지 않는다. Jev 호출은 밖에서 넘겨받는다 (call(body) → 응답). 키는 이 파일에 없다.
 // 중계는 확장이 보낸 값을 믿지 않으므로, 확장에서 이미 거른 값도 여기서 다시 거른다.
 
-import { docNames, findService, formPicks, goalFor, buildSearchRequest, cleanQuery, localSearch, namedButMissing, pickServices, publicItem, MAX_RESULTS } from './catalog.js';
+import { CATALOG, docNames, findService, formPicks, goalFor, buildSearchRequest, cleanQuery, localSearch, namedButMissing, pickServices, publicItem, MAX_RESULTS } from './catalog.js';
 import { STAGE_TEXT } from './goals.js';
 import { buildRequest, decide } from './jev.js';
 import { HANDOFF_RESULT, choiceNote, detectHandoff, splitChoices, withoutLoginControls, withoutSelfLinks } from './handoff.js';
@@ -35,6 +35,18 @@ export function joinShortDetail(list) {
     out.push(join ? { ...c, label, detail: '' } : c);
   }
   return out;
+}
+
+// 확장 버전이 min 이상인지 (중계가 X-Ldry-Version 헤더로 받아 input.clientVersion으로 넘긴다. ''이면 0.1.2 이하).
+// 0.1.2가 헷갈릴 새 동작은 atLeast(clientVersion, '0.1.3')로 가른다. 2026-10-25 지금 가르는 곳은 없다.
+export function atLeast(version, min) {
+  if (!version) return false;
+  const a = version.split('.').map(Number);
+  const b = min.split('.').map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) > (b[i] ?? 0);
+  }
+  return true;
 }
 
 // 요청 → Jev 요청 본문. 문제가 있으면 { error }, Jev에 물을 필요가 없으면 { result }.
@@ -87,6 +99,11 @@ export async function guideNext(input, call) {
   const response = await call(prep.body);
   const decision = decide(response, prep.candidates);
   return { result: finishGuide(decision, prep.candidates, prep.note), decision, usage: response?.usage };
+}
+
+// 「목록에서 직접 고르기」에 보여 줄 전체 목록. 중계(POST /v1/catalog)와, 중계가 안 될 때의 확장이 같은 모양으로 쓴다.
+export function listCatalog() {
+  return { kind: 'results', items: CATALOG.map(publicItem), source: 'list' };
 }
 
 // 어르신이 적은 말 → 목록에서 고를 후보. call이 없거나 실패하면 글자 맞추기로 찾는다.

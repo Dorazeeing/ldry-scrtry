@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   CATALOG,
+  ITEM_ID,
   MAX_RESULTS,
   buildSearchRequest,
+  cleanPublicItems,
+  publicItem,
   cleanQuery,
   findService,
   goalFor,
@@ -142,4 +145,35 @@ test('Jev 검색 질문에 「증명」과 「재발급」을 구별하라는 �
   const note = buildSearchRequest('사업자등록증').questions.service.instructions.note;
   assert.match(note, /증명/);
   assert.match(note, /재발급/);
+});
+
+test('서버가 알려 준 목록 항목 거르기 (0.1.3: 확장이 서버 목록을 믿고 기억하기 전에)', () => {
+  // 이 확장에 든 목록은 그대로 통과한다 (쉬운 설명의 「…것이 아님」도 남는다)
+  const bundled = CATALOG.map(publicItem);
+  assert.deepEqual(cleanPublicItems(bundled), bundled);
+  assert.ok(CATALOG.every((c) => ITEM_ID.test(c.id)), '목록 id는 모두 정해진 모양');
+  // 서버에만 새로 넣은 항목은 받는다
+  assert.deepEqual(cleanPublicItems([{ id: 'new_doc_2026', name: '  새   서류 ', plain: '새로 생긴 서류', extra: 'x' }]), [
+    { id: 'new_doc_2026', name: '새 서류', plain: '새로 생긴 서류' },
+  ]);
+  // id 모양이 틀리거나, 이름이 없거나 개인정보처럼 보이거나, 같은 id가 또 나오면 뺀다
+  const bad = cleanPublicItems([
+    { id: '__proto__', name: '나쁜 항목' },
+    { id: 'constructor_', name: '좋은 항목' },
+    { id: 'Bad-Id', name: '대문자·빼기' },
+    { id: 'x'.repeat(41), name: '너무 긴 id' },
+    { id: 7, name: '숫자 id' },
+    { id: 'no_name', name: '' },
+    { id: 'personal', name: '홍길동님 서류' },
+    { id: 'phone', name: '010-1234-5678' },
+    { id: 'constructor_', name: '같은 id 두 번째' },
+    null,
+  ]);
+  assert.deepEqual(bad.map((i) => i.id), ['constructor_']);
+  assert.equal(bad[0].name, '좋은 항목');
+  // 길이는 자르고, 사이트 이름은 있을 때만
+  const [long] = cleanPublicItems([{ id: 'long', name: '가'.repeat(60), plain: '나'.repeat(200), offsiteName: '자동차365' }]);
+  assert.ok(long.name.length <= 40 && long.plain.length <= 120);
+  assert.equal(long.offsiteName, '자동차365');
+  assert.deepEqual(cleanPublicItems('not a list'), []);
 });
