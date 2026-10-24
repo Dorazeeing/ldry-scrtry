@@ -3,7 +3,7 @@
 정부24에서 **다음에 누를 곳**을 빨간 테두리로 알려 주는 **실험용** 크롬 확장이다.
 가정한 상황: 어르신이 정부24에서 서류(예: **주민등록표 초본**)를 떼려는데 정확한 서류 이름도, 어디를 눌러야 할지도 모른다.
 
-- 해커톤 본 결과물(배포 웹 서비스)과 별개다. **크롬 웹스토어 공개 배포가 목표**다 (`../docs/requirementSpec.md` D-7). 웹스토어에 제출해 **심사 중**(2026-10-17)이고, 로컬 로드로도 쓸 수 있다. 배포 현황·Railway 중계·남은 일은 `AGENTS.md`에 있다.
+- 개인 프로젝트다 (2026-10-24 해커톤 폴더에서 분리). **크롬 웹스토어 공개 배포가 목표**다 (`docs/requirementSpec.md` D-7). 웹스토어에 제출해 **심사 중**(2026-10-17)이고, 로컬 로드로도 쓸 수 있다. 배포 현황·Railway 중계·남은 일은 `AGENTS.md`에 있다.
 - 화면 이름은 "민원 길잡이 (비공식)"이다 (노인 UX 규칙: 화면에 영어를 쓰지 않음). 확장 목록에는 `ldry-scrtry`로 보인다 (D-8. 이전 이름 GVRNMNT24 detector). 정부24·행정안전부와 관계없는 비공식 도구다.
 - 직접 누르거나 입력하지 않는다. 알려 주기만 한다.
 
@@ -71,7 +71,7 @@ content.js (정부24 화면)                     background.js (신뢰 영역)  
 ## 설치 (로컬 로드)
 
 1. `chrome://extensions` → 오른쪽 위 **개발자 모드** 켜기
-2. **압축해제된 확장 프로그램 로드** → 이 폴더(`gvrnmnt24-detector/`) 선택 (빌드 단계 없음)
+2. **압축해제된 확장 프로그램 로드** → 이 폴더(`ldry-scrtry/`) 선택 (빌드 단계 없음)
 3. (선택) 툴바의 확장 아이콘 → 설정 창에서 **연결 확인** → "연결됐어요." (키는 없다. 서버가 잠들어 있으면 두 번 눌러야 할 수 있다)
 4. 정부24(`www.gov.kr` 또는 `plus.gov.kr`)를 열면 오른쪽 아래에 길잡이 창이 뜬다 → 처음에는 **동의 화면**이 나온다 → 동의한 뒤 떼고 싶은 것을 쉬운 말로 적고 「찾기」 → 나온 목록에서 고르기
 
@@ -88,7 +88,7 @@ content.js (정부24 화면)                     background.js (신뢰 영역)  
 | 배포용 zip | `npm run package` → `ldry-scrtry.zip` (`manifest.json`·`src`만. 서버 코드는 안 들어감) |
 | 중계 서버 로컬 실행 | `TYPESAFE_API_KEY=… PORT=8788 npm start` (계약: `server/openapi.yaml`) |
 
-- `smoke`는 Playwright를 새로 설치하지 않고 `../slop-detector/node_modules`의 것을 빌려 쓴다. 다른 곳의 것을 쓰려면 `PLAYWRIGHT_FROM=<package.json 경로>`.
+- `smoke`는 Playwright를 새로 설치하지 않고 `reference/slop-detector/node_modules`의 것을 빌려 쓴다. 다른 곳의 것을 쓰려면 `PLAYWRIGHT_FROM=<package.json 경로>`.
 - `plus.gov.kr`(메인·로그인)은 자동화 브라우저를 "서비스 접속이 차단되었습니다"로 막는다. **우회하지 않는다.** 그래서 `smoke`는 `www.gov.kr` 구간만 자동으로 확인하고, 메인·로그인은 사람이 실제 크롬에서 확인한다.
 - `trial`은 두 가지를 잰다 (`MODE=pages|search`로 하나만 가능).
   - 다음 버튼: `test/fixtures/pages.json`의 화면 4개(메인, 민원안내, 회원·비회원 창, 로그인)를 후보 순서를 바꿔 3번씩 (12회). 로그인 화면은 자동화가 막혀 HTML에서 버튼 이름을 재구성했다.
@@ -148,4 +148,6 @@ src/lib/sanitize.js  개인정보 거르기, 후보 정리
 src/popup.*          설정 창: 서버 연결 확인, 동의 취소, 안내 끝내기, 최근 판단 기록
 scripts/             check · smoke · trial
 test/                단위 시험 + 시험 화면(fixtures)
+docs/                요구사항·결정(requirementSpec.md), Jev 정리, 프롬프트 기록
+reference/           참고 오픈소스 slop-detector (별도 git 저장소, .gitignore로 빠짐)
 ```

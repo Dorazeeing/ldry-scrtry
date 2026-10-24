@@ -1,6 +1,6 @@
 // 연기 시험: 실제 정부24 공개 페이지에서 확장을 띄워 "후보 수집 → 질문 → 테두리"가 이어지는지 본다.
 // TypeSafe는 가짜 응답으로 바꾼다 (키·비용 없음). 정확도 시험은 scripts/trial.mjs.
-// Playwright는 새로 설치하지 않고 ../slop-detector/node_modules 것을 빌려 쓴다 (PLAYWRIGHT_FROM으로 바꿀 수 있음).
+// Playwright는 새로 설치하지 않고 reference/slop-detector/node_modules 것을 빌려 쓴다 (PLAYWRIGHT_FROM으로 바꿀 수 있음).
 // 결과: smoke-out/ 에 단계별 화면 사진, 보낸 요청(fixture), 요약 summary.json
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -14,7 +14,7 @@ import { createRelay } from '../server/relay.js';
 
 process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = '1'; // service worker의 fetch도 가로채기
 const root = new URL('..', import.meta.url).pathname;
-const { chromium } = createRequire(process.env.PLAYWRIGHT_FROM ?? join(root, '../slop-detector/package.json'))('playwright');
+const { chromium } = createRequire(process.env.PLAYWRIGHT_FROM ?? join(root, 'reference/slop-detector/package.json'))('playwright');
 const OUT = process.env.SMOKE_OUT ? join(root, process.env.SMOKE_OUT) : join(root, 'smoke-out');
 mkdirSync(OUT, { recursive: true });
 

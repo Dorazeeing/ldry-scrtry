@@ -1,12 +1,12 @@
 // 아이콘(16·48·128)과 스토어 작은 홍보 이미지(440×280)를 만든다. 크롬(Playwright)으로 그려 PNG로 저장한다.
-// 실행: node scripts/icons.mjs   (Playwright는 smoke.mjs처럼 ../slop-detector 것을 빌려 쓴다)
+// 실행: node scripts/icons.mjs   (Playwright는 smoke.mjs처럼 reference/slop-detector 것을 빌려 쓴다)
 import { mkdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { findBrowser } from './browser.mjs';
 
 const root = new URL('..', import.meta.url).pathname;
-const { chromium } = createRequire(process.env.PLAYWRIGHT_FROM ?? join(root, '../slop-detector/package.json'))('playwright');
+const { chromium } = createRequire(process.env.PLAYWRIGHT_FROM ?? join(root, 'reference/slop-detector/package.json'))('playwright');
 mkdirSync(join(root, 'icons'), { recursive: true });
 
 // 파란 바탕, 흰 버튼, 빨간 테두리, 위에서 가리키는 화살표 — "여기를 누르세요"를 그대로 그림

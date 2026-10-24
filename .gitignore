@@ -6,3 +6,4 @@ trial-out/
 .omc/
 .DS_Store
 store/raw/
+reference/

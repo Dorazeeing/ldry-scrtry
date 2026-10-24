@@ -1,7 +1,15 @@
 # AGENTS.md — ldry-scrtry (정부24 길잡이, 비공식)
 
-크롬 확장. 해커톤 본 결과물(배포 웹 서비스)과 별개지만 **크롬 웹스토어 공개(Public) 배포가 목표**다 (사용자 결정 2026-10-17, `../docs/requirementSpec.md` D-7). 배포 현황·중계 서버·공개 전 할 일은 이 문서 아래쪽에 있다. 무엇·어떻게는 `README.md`, 배경 설계는 `../slop-detector/usePlan.md` §8, 팀 공통 규칙은 `../AGENTS.md`(§3 비밀값·개인정보, §4 노인 UX).
+크롬 확장. **개인 프로젝트**다: 2026-10-24에 해커톤 폴더(`~/Desktop/KyoboDTS_FullStackDevBootCamp/Hackathon/gvrnmnt24-detector`)에서 이 폴더로 옮겨 해커톤과 분리했다 (사용자 결정). 아래 기록에 나오는 「팀」·「해커톤」은 분리 전 상황이다. **크롬 웹스토어 공개(Public) 배포**가 목표다 (사용자 결정 2026-10-17, `docs/requirementSpec.md` D-7). 배포 현황·중계 서버·공개 전 할 일은 이 문서 아래쪽에 있다. 무엇·어떻게는 `README.md`, 배경 설계는 `reference/slop-detector/usePlan.md` §8, 화면·비밀값·개인정보 공통 규칙은 맨 아래 「공통 규칙」에 있다.
 Jev 판단을 고칠 때는 TypeSafe 스킬(`typesafe:typesafe-ai`)을 따르고 공식 문서(https://docs.typesafe.ai/api.md, /primitives/choice.md)를 다시 확인한다.
+
+## 폴더
+
+| 경로 | 내용 |
+|---|---|
+| (루트) | 확장 + Railway 중계. git 저장소 `Dorazeeing/ldry-scrtry`(비공개) |
+| `docs/` | `requirementSpec.md`(요구사항·결정 D-1~D-11. D-6 이후가 이 확장), `jev.md`(TypeSafe Jev 정리, 해커톤 문서 복사본), `usageJev.md`(길잡이가 Jev를 부르는 때), `history.md`(만들 때 입력한 프롬프트 요약) |
+| `reference/slop-detector/` | 참고한 오픈소스 [rbilgil/slop-detector](https://github.com/rbilgil/slop-detector)(MIT) 클론 + 피드 지킴이 실험 메모(`AGENTS.md`·`usePlan.md`). **별도 git 저장소이고 `origin`은 원작자 저장소라 push하지 않는다.** `.gitignore`의 `reference/` 줄 때문에 이 저장소 커밋과 `railway up` 업로드에 들어가지 않는다 (지우지 않는다). `npm run smoke`·`scripts/icons.mjs`가 여기 `node_modules`의 Playwright를 빌려 쓴다 |
 
 ## 규칙
 
@@ -25,12 +33,12 @@ Jev 판단을 고칠 때는 TypeSafe 스킬(`typesafe:typesafe-ai`)을 따르고
 | 정부24의 자동화 차단을 우회하지 않는다 (UA 바꾸기 등 금지) | 차단은 사이트의 의사 |
 | 빌드 단계·새 라이브러리를 넣지 않는다 (필요하면 사용자에게 먼저 묻는다) | 폴더째 로드하는 단순함 유지 |
 | 정책값(`MIN_PROBABILITY` 등)은 `src/lib/jev.js` 상수 한 곳. 질문 문구·형식을 바꾸면 `RUBRIC_VERSION`을 올린다 | 캐시 무효화 |
-| 화면 문구는 쉬운 한국어, 글씨 20px·버튼 56px 이상, 아이콘만 있는 버튼 금지 | `../AGENTS.md` §4 |
+| 화면 문구는 쉬운 한국어, 글씨 20px·버튼 56px 이상, 아이콘만 있는 버튼 금지 | 아래 「공통 규칙」 노인 UX |
 | 끝났다고 하기 전에 `npm run check`와 `npm run smoke`를 돌리고 결과를 보고한다 | 검증 |
 | 커밋·push는 사용자가 요청할 때만. **서버 배포(`railway up`)·Railway 변수 변경·스토어 제출/게시도 사용자가 요청하거나 승인할 때만** 하고, 올리기 전에 `npm run check`(단위 시험)를 돌린다 | 팀 Git 규칙. 운영 서버를 쓰는 사람이 있다. 스토어는 사람이 로그인해서 제출·게시한다 |
 | **스토어에 올리는 zip은 반드시 `npm run package`로 만든다.** 폴더를 손으로 압축하지 않는다. 이 명령(`scripts/package.mjs`)이 `manifest.json`의 개발용 `key`와 `.DS_Store`를 뺀다. 올리기 전에 `manifest.json`의 `version`을 이전보다 높인다 | `key`는 폴더로 불러온 확장의 ID를 고정하려고 넣은 것(`iieapegdhcfmnhgimjhgolgaiffmhbij`)이다. 스토어판 ID(`poicbfndbnffkpkmmkmhmnehpbmemnif`)는 스토어가 정하므로 zip에 넣으면 안 된다. 스토어는 이전보다 낮거나 같은 버전을 받지 않는다 |
 | **무엇을 고치느냐에 따라 배포 길이 다르다.** `src/lib/`(서버와 같이 쓰는 코드)는 `railway up -s relay --ci`만 하면 바로 적용되고 심사가 필요 없다. `src/content.js`·`src/background.js`·`manifest.json`은 새 버전을 올려 **스토어 심사를 다시 받아야** 적용된다. 판단 규칙·개인정보 거르기는 될 수 있으면 `src/lib/`에 둔다 | 심사는 며칠에서 몇 주. 급한 수정은 서버에서 풀 수 있는지 먼저 본다 |
-| **폴더 이름·위치를 바꾸면 Railway 연결이 끊긴다.** `railway link -p ldry-scrtry -e production -s relay`로 다시 잇고, `railway status`로 확인한 뒤 `railway up`을 한다. 서버 허용 목록(`ALLOWED_ORIGIN`)은 로컬 ID와 스토어 ID 둘뿐이다 | 연결 정보가 폴더 경로에 묶여 있다 (2026-10-19 Hackerton → Hackathon 이름 변경 때 끊김) |
+| **폴더 이름·위치를 바꾸면 Railway 연결이 끊긴다.** `railway link -p ldry-scrtry -e production -s relay`로 다시 잇고, `railway status`로 확인한 뒤 `railway up`을 한다. 서버 허용 목록(`ALLOWED_ORIGIN`)은 로컬 ID와 스토어 ID 둘뿐이다 | 연결 정보가 폴더 경로에 묶여 있다 (2026-10-19 Hackerton → Hackathon 이름 변경 때 끊김). 2026-10-24 이 폴더로 옮길 때는 CLI 로그인이 만료돼 `railway link`가 안 돼서, `~/.railway/config.json`에 예전 항목과 같은 ID로 이 경로 항목을 넣었고, 다시 로그인한 뒤 `railway status`로 `relay` 연결을 확인했다 |
 | 정부24 밖 사이트(기관 사이트)에서 서버로 보내는 글을 늘리거나 줄일 때는 **두 줄 카드 이름**을 확인한다. 둘째 줄(`detail`)을 통째로 막으면 「가족관계 / 증명서」가 「가족관계」와 「증명서」로 갈라져 AI가 못 고른다. 지금은 서류·동작 낱말로 끝나는 12자 이하 둘째 줄만 보내고 서버가 이름에 합친다 | 2026-10-19 사고: 개인정보 수정이 전자가족관계 첫 화면을 망가뜨림. 사람·회사 이름은 계속 막아야 한다 |
 | 화면 모양을 고칠 때는 **실제 화면의 버튼 목록**으로 시험 자료(`test/fixtures/pages.json`)를 늘린다. 자동 접속이 막힌 사이트는 사용자가 개발자 도구로 복사해 준 목록을 쓴다 (우회하지 않는다). 규칙을 바꾸면 `MODE=pages ROUNDS=1 TYPESAFE_API_KEY=… node scripts/trial.mjs`를 **한 번** 돌려 기존 화면이 그대로 정답인지 본다 | 규칙 한 줄이 다른 화면을 깨뜨린 적이 있다. 시간·평균을 재려는 반복 실험은 하지 않는다 |
 
@@ -41,7 +49,7 @@ Jev 판단을 고칠 때는 TypeSafe 스킬(`typesafe:typesafe-ai`)을 따르고
 | 크롬 웹스토어 개발자 계정 | **완료.** 배포 전용 Google 계정(주소는 팀 채널에서 공유, 문서에 적지 않음), 등록비 $5 결제, **비판매자(Non-trader)** 신고 (수익 없는 공모전) |
 | 게시자 이름 | **아직 계정 이메일 그대로** → 대시보드 Settings에서 팀 이름으로 바꾼다. "정부24"·"행정안전부"처럼 공식 기관으로 보이는 이름 금지 |
 | 2단계 인증 | 확인 필요 (꺼져 있으면 게시·업데이트 불가). 승인 전에 확인한다 |
-| 확장 한도 | **1/2** (심사 중인 초안도 셈). 피드 지킴이(`../slop-detector`)와 같은 게시자라 남은 자리 1개를 함께 쓴다 |
+| 확장 한도 | **1/2** (심사 중인 초안도 셈). 피드 지킴이(`reference/slop-detector`)와 같은 게시자라 남은 자리 1개를 함께 쓴다 |
 | 웹스토어 항목 | **있음. 게시됨(public, 2026-10-19), 심사 통과 버전 0.1.0·0.1.1. 0.1.2는 준비됨(`ldry-scrtry.zip`, 사용자가 올려 심사 요청 예정).** (아래는 1차 제출 경과) 항목 ID `poicbfndbnffkpkmmkmhmnehpbmemnif`, 버전 0.1.0. 1차 제출(2026-10-17)은 **거절**: "Spam and Placement in the Store / Yellow Argon — 설명에 과도한 키워드(기관 이름 12개 나열)". 설명에서 기관 이름을 모두 빼고 같은 날 재제출 → **Pending review** (심사는 보통 며칠~몇 주). **심사 중에는 항목을 고치지 않는다.** 승인되면 30일 안에 게시(Publish)해야 한다. 스토어 ID는 서버 `ALLOWED_ORIGIN`에 등록 완료 |
 | Railway 중계 | **배포됨 (2026-10-17).** 프로젝트 `ldry-scrtry` → 서비스 `relay`, 주소 `https://relay-production-4d72.up.railway.app`, **Free 요금제**. 변수 5개 등록(키는 stdin으로, Seal 안 함 — 계정 사용자가 1명뿐이라 사용자 결정). `ALLOWED_ORIGIN`은 로컬 로드 ID(`iieapegdhcfmnhgimjhgolgaiffmhbij`, `manifest.json`의 개발용 `key`로 고정 — 폴더 이름·위치가 바뀌어도 같다)와 스토어 ID(`poicbfndbnffkpkmmkmhmnehpbmemnif`) 두 개 (다른 Origin은 403). **`key`는 스토어용 zip에 넣지 않는다**: `npm run package`가 뺀다. 폴더 이름이 바뀌면 Railway 연결도 끊기므로 `railway link -p ldry-scrtry -e production -s relay`로 다시 잇는다 `DAILY_CAP=5000`, `PER_IP_PER_MIN=30`, `RELAY_ENABLED=true`. 리전은 Southeast Asia(싱가포르) 유지 — 미국 서부가 2~3배 빠르지만 사용자 결정 대기 |
 | GitHub | https://github.com/Dorazeeing/ldry-scrtry (**비공개**로 바꿈, 사용자). 웹스토어·Railway는 공개 저장소를 요구하지 않는다(Railway는 CLI 업로드). 처리방침 페이지를 GitHub Pages로 올릴 수 없다 → 다른 곳(예: Vercel)에 둔다. 동의 문구·처리방침에 "코드를 공개한다"고 쓰지 않는다 |
@@ -64,7 +72,7 @@ background.js ──goalId + 걸러진 화면 정보──▶ Railway 중계 (�
 | `POST /v1/catalog/search` | `query`(어르신이 적은 말) | `{kind:'results', items:[{id,name,plain}]}` |
 | `GET /health` | — | `{ok:true}` |
 
-- 계약은 **`server/openapi.yaml`** (이 저장소 안). 루트 `../docs/api/openapi.yaml`은 해커톤 본 서비스용이라 따로 둔다. 엔드포인트를 바꿀 때는 이 파일을 먼저 고친다.
+- 계약은 **`server/openapi.yaml`** (이 저장소 안). 엔드포인트를 바꿀 때는 이 파일을 먼저 고친다.
 - 시험: `test/relay.test.js` (가짜 TypeSafe — 질문 고정, 세션 값 제거, 사이트·Origin·크기·분당·하루 상한·스위치, 로그에 본문 없음). 로컬 실행: `TYPESAFE_API_KEY=… PORT=8788 npm start`
 - **위치는 `server/`(이 폴더 안).** Railway는 지정한 폴더 밖 파일을 가져오지 않아, 따로 폴더를 두면 `src/lib`를 못 불러온다. 확장 zip(`npm run package`)은 `manifest.json`·`src`만 묶으므로 서버 코드는 확장에 들어가지 않는다.
 - 의존성 없음: Node 22+ 내장 `http` + `fetch`. 시작 명령 `node server/relay.js` (`package.json` `start`).
@@ -134,3 +142,23 @@ background.js ──goalId + 걸러진 화면 정보──▶ Railway 중계 (�
 | Railway 리전 | 싱가포르(0.9~1.1초) vs 미국 서부(0.4초) — 사용자 결정 대기 |
 | 팀 이름·게시자 이름 | 미정. 정해지면 `store/privacy/index.html`(운영자)을 고쳐 다시 배포하고 대시보드 Settings에서 게시자 이름을 바꾼다 |
 | TypeSafe·Railway 비용 한도 | 실제 월 비용·호출 한도 미확인 |
+
+## 공통 규칙 (해커톤 지침서 §3·§4에서 가져옴, 2026-10-24)
+
+분리 전에는 해커톤 루트 `AGENTS.md`를 함께 따랐다. 그중 이 확장에 해당하는 것만 옮겼다.
+
+**비밀값·개인정보·오류**
+- 비밀값(`TYPESAFE_API_KEY` 등)은 Railway Variables에만 둔다. `.env`는 커밋하지 않는다.
+- 오류 응답은 `{ "error": { "code": "...", "message": "..." } }`, 필드명은 camelCase, `message`는 어르신이 읽을 수 있는 쉬운 한국어로 쓴다.
+- 시험·데모·스크린샷에는 가상 인물만 쓴다.
+
+**노인 UX (모든 화면)**
+- 본문 글씨 20px 이상, 버튼 높이 56px 이상, 버튼 간격 16px 이상.
+- 글자 대비 7:1 목표 (WCAG AAA), 최소 4.5:1.
+- 한 화면에 핵심 행동은 하나. 주 버튼은 크게 둔다.
+- 결과 화면에는 "소리로 듣기"를 둔다.
+- 입력은 음성을 우선하고 타이핑은 보조로 둔다.
+- 영어·외래어·전문용어를 쓰지 않는다 (예: "업로드" → "사진 보내기").
+- 시간제한·자동 넘김·작은 팝업을 쓰지 않는다. 기다리는 동안에는 "읽고 있어요…"처럼 상태를 글로 알린다.
+- 아이콘만 있는 버튼을 쓰지 않는다. 항상 글자를 함께 쓴다.
+- 해커톤 지침서의 모바일 규칙은 옮기지 않았다. 휴대폰 크롬은 확장을 지원하지 않는다.
