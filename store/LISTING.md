@@ -55,7 +55,7 @@
 
 | 권한 | 사유 |
 |---|---|
-| `storage` | 안내 중인 서류, 이미 누른 버튼 이름, 동의 여부, 안내 창을 접었는지를 이 컴퓨터에 저장한다 |
+| `storage` | 안내 중인 서류, 이미 누른 버튼 이름, 동의 여부, 안내 창을 접었는지를 이 컴퓨터에 저장한다. 최근 판단 기록(20건)과 마지막으로 서버에 보낸 걸러진 화면 정보 하나는 브라우저를 닫으면 지워지는 곳(session)에 둔다 (0.1.3, 설정 창에서 보기·복사) |
 | 호스트 `https://relay-production-4d72.up.railway.app/*` | 화면의 버튼·칸 이름을 걸러서 이 확장 전용 서버로 보내 다음에 누를 곳을 판단받는다 |
 | 콘텐츠 스크립트 호스트 16개 (정부24 2개 + 기관 사이트) | 해당 사이트 화면에서 버튼·칸의 이름과 위치를 읽어 빨간 테두리를 그리기 위해서다. 다른 사이트에서는 실행되지 않는다 (`<all_urls>` 없음) |
 
@@ -78,9 +78,9 @@
 Help people use the Korean government portal Gov24 (gov.kr) and a small set of government document-issuing sites to get a document issued, by showing a large red outline around the next button the user should press for the document they chose. The extension only points. It never clicks, types or submits anything for the user, and it does not handle login.
 ```
 
-**storage** (259자)
+**storage** (0.1.3부터, 0.1.3을 제출할 때 대시보드 문구를 이것으로 바꾼다)
 ```
-Stores, on the user's device only: which document the user is being guided to get, the names of the buttons already pressed (up to 8), whether the user accepted the in-extension consent notice, and whether the guide panel is collapsed. Nothing else is stored.
+Stores, on the user's device only: which document the user is being guided to get, the names of the buttons already pressed (up to 8), whether the user accepted the in-extension consent notice, and whether the guide panel is collapsed. In session storage (cleared when the browser closes): the last 20 guidance results and the last filtered screen data sent to our server, shown in the settings page where the user can review, copy or clear them; and the document list entries (names and short descriptions) our server returned in search or list results, so the user can pick documents newly added on the server. Nothing is sent anywhere from this storage.
 ```
 
 **host** (692자)
