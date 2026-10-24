@@ -8,6 +8,7 @@ import { createRequire } from 'node:module';
 import { findBrowser } from './browser.mjs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { CATALOG } from '../src/lib/catalog.js';
 import { RELAY_URL } from '../src/lib/relay.js';
 import { NONE_OPTION, looksPersonal } from '../src/lib/sanitize.js';
 import { createRelay } from '../server/relay.js';
@@ -74,18 +75,32 @@ const relayPort = relay.address().port;
 context.on('request', (r) => {
   if (r.url().includes('typesafe.ai')) typesafeCalls.push(r.url());
 });
+// 서버에만 있는 목록 항목 흉내 (0.1.3): serverOnly.on이면 새 서버가 목록에 서류를 하나 더 넣은 것처럼 검색·목록 응답 앞에 붙이고,
+// 그 id로 오는 판단 요청은 이 시험의 로컬 중계(목록이 같은 코드)가 아는 id로 바꿔 보낸다. removed면 서버 목록에서 빠진 것처럼 그대로 보낸다
+const SERVER_ONLY = { id: 'smoke_server_only', name: '시험용 새 서류', plain: '서버 목록에만 있는 시험 항목' };
+const serverOnly = { on: false, removed: false };
+let catalogGets = 0; // 확장이 /v1/catalog(목록)를 부른 횟수
 await context.route(`${RELAY_URL}/**`, async (route) => {
   const req = route.request();
+  const path = new URL(req.url()).pathname;
   relayHits += 1;
+  if (path === '/v1/catalog') catalogGets += 1;
   if (req.method() === 'POST') relayRequests.push(req.postDataJSON());
   const headers = { ...req.headers() };
   delete headers.host;
-  const upstream = await fetch(`http://127.0.0.1:${relayPort}${new URL(req.url()).pathname}`, {
-    method: req.method(),
-    headers,
-    body: req.method() === 'POST' ? req.postData() : undefined,
-  });
-  await route.fulfill({ status: upstream.status, contentType: 'application/json', body: await upstream.text() });
+  delete headers['content-length'];
+  let body = req.method() === 'POST' ? req.postData() : undefined;
+  if (serverOnly.on && !serverOnly.removed && path === '/v1/guide/next') {
+    const sent = JSON.parse(body);
+    if (sent.goalId === SERVER_ONLY.id) body = JSON.stringify({ ...sent, goalId: 'resident_abstract' });
+  }
+  const upstream = await fetch(`http://127.0.0.1:${relayPort}${path}`, { method: req.method(), headers, body });
+  let text = await upstream.text();
+  if (serverOnly.on && upstream.ok && (path === '/v1/catalog' || path === '/v1/catalog/search')) {
+    const res = JSON.parse(text);
+    text = JSON.stringify({ ...res, items: [SERVER_ONLY, ...res.items] });
+  }
+  await route.fulfill({ status: upstream.status, contentType: 'application/json', body: text });
 });
 
 const sw = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
@@ -102,6 +117,13 @@ await popup.click('#test');
 await popup.waitForSelector('#relayState.ok', { timeout: 10000 }).catch(() => {});
 check('설정 창: 서버 연결 확인', (await popup.textContent('#relayState')) === '연결됐어요.', await popup.textContent('#relayState'));
 check('설정 창: 처음에는 동의 전', (await popup.textContent('#consentState')).includes('동의하지 않았어요'));
+// 동의 전 「목록에서 직접 고르기」는 이 확장에 든 목록만 쓰고 서버에 묻지 않는다 (0.1.3)
+const preList = await popup.evaluate(() => chrome.runtime.sendMessage({ type: 'catalog/list' }));
+check(
+  '동의 전 목록: 이 확장에 든 목록만, 서버에 안 물음',
+  preList?.kind === 'results' && preList.items.length === CATALOG.length && catalogGets === 0,
+  `${preList?.items?.length}개, 서버 목록 요청 ${catalogGets}건`,
+);
 await popup.screenshot({ path: join(OUT, '0-popup.png'), fullPage: true });
 
 const page = await context.newPage();
@@ -171,7 +193,8 @@ await page.screenshot({ path: join(OUT, '1-start.png') });
 let since = requests.length;
 await shadow('#gvrnmnt24-query').fill('홍길동님 등본');
 await shadow('[data-act="search"]').click();
-await page.waitForTimeout(800);
+// 고정 0.8초로 기다리면 PC가 바쁠 때 답이 늦게 와서 뒤 단계가 한 칸씩 밀린다 (2026-10-25: 부하 평균 25~50에서 6개 연쇄 실패) → 찾는 중이 끝날 때까지 기다린다
+await page.waitForFunction(() => !document.querySelector('gvrnmnt24-guide').shadowRoot.querySelector('.msg').textContent.includes('찾고 있어요'), null, { timeout: 10000 });
 check(
   '검색: 개인정보처럼 보이면 보내지 않음',
   requests.slice(since).every((b) => !b.questions?.service) && (await shadow('.msg').textContent()).includes('개인정보'),
@@ -273,7 +296,12 @@ async function fake(name, file, host = 'www.gov.kr') {
   );
   const before = requests.length;
   await page.goto(url, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(3500);
+  // 고정 3.5초만 기다리면 PC가 바쁠 때 아직 묻는 중이라 요청이 없다 (2026-10-25 두 줄 카드 화면) → 「찾고 있어요」가 끝날 때까지 (최대 10초)
+  await page.waitForTimeout(1500);
+  await page
+    .waitForFunction(() => !(document.querySelector('gvrnmnt24-guide')?.shadowRoot.querySelector('.msg')?.textContent ?? '').includes('찾고 있어요'), null, { timeout: 10000 })
+    .catch(() => {});
+  await page.waitForTimeout(500);
   return {
     before,
     asks: requests.slice(before).filter((b) => b.questions?.nextControl),
@@ -337,6 +365,26 @@ check(
   wantCards.every((k) => cardKeys.includes(k)) && new Set(cardKeys).size === cardKeys.length,
   cardKeys.join(', '),
 );
+// 5-2e. 두 줄로 감긴 링크는 옆 글(바탕색·여백 있는 굵은 글) 때문에 "가려짐"으로 빠지지 않는다 (0.1.3)
+const wrapFake = await fake('wrapped', 'wrapped-link.html');
+const wrapKeys = Object.keys(wrapFake.asks.at(-1)?.questions.nextControl.criteria ?? {});
+check('두 줄로 감긴 링크도 후보에 남음 (옆 글이 붙어 있어도 가려진 것으로 보지 않음)', wrapKeys.includes('주민등록표 등본 발급 안내 자세히 보기'), wrapKeys.join(', '));
+// 5-2f. 가리킨 버튼을 두 번 눌러도 화면이 그대로면 테두리는 두고 새 창 막힘 안내 (0.1.3)
+const stuckFake = await fake('no-change', 'no-change.html');
+const pressOpen = async () => {
+  await page.click('#open');
+  await page.waitForTimeout(2500);
+  return shadow('.msg').textContent();
+};
+const firstPressMsg = await pressOpen();
+const secondPressMsg = await pressOpen();
+const stuckRings = await shadow('.ring').count();
+await page.screenshot({ path: join(OUT, '5-no-change.png') });
+check(
+  '누른 뒤 화면이 그대로: 첫 번째는 평소 안내, 두 번째부터 새 창 막힘 안내 (테두리는 그대로)',
+  stuckFake.rings === 1 && !firstPressMsg.includes('그대로예요') && secondPressMsg.includes('화면이 그대로예요') && secondPressMsg.includes('항상 허용') && stuckRings === 1,
+  `${firstPressMsg} → ${secondPressMsg} (테두리 ${stuckRings}개)`,
+);
 
 // 5-3. 가리킨 곳을 누르면 그 판단은 버려진다 (민원안내 페이지에서 「발급하기」를 누른 직후 테두리가 사라지고 다시 찾는다)
 since = requests.length;
@@ -384,6 +432,150 @@ check(
   consentNext.msg.includes('다음') && !consentKeys.some((k) => /선택\]|전체 동의|동의하지 않음/.test(k)),
   consentKeys.join(', '),
 );
+
+// 6-2. 진짜 input 없이 role="checkbox"·"radio"·"switch"로 꾸민 약관 칸도 「필수」만 표시한다 (0.1.3)
+const ARIA_CONSENT = 'https://www.gov.kr/__gvrnmnt24_test__/aria-consent.html';
+await context.route(ARIA_CONSENT, (route) =>
+  route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: readFileSync(join(root, 'test/fixtures/aria-consent.html'), 'utf8') }),
+);
+since = requests.length;
+await page.goto(ARIA_CONSENT, { waitUntil: 'domcontentloaded' });
+await page.waitForFunction(() => document.querySelector('gvrnmnt24-guide')?.shadowRoot.querySelectorAll('.ring').length > 0, null, { timeout: 15000 }).catch(() => {});
+await page.waitForTimeout(400);
+const ariaRings = await shadow('.ring').count();
+const ariaRinged = await page.evaluate(() => {
+  const r = document.querySelector('gvrnmnt24-guide').shadowRoot;
+  return [...r.querySelectorAll('.ring')].map((ring) => {
+    const b = ring.getBoundingClientRect();
+    const el = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+    return el?.id || el?.tagName;
+  });
+});
+await page.screenshot({ path: join(OUT, '6-aria-consent.png') });
+check(
+  '꾸민 약관 칸: 필수 3곳만 표시 (선택·전체 동의·동의하지 않음·선택 스위치 제외)',
+  ariaRings === 3 && ['a1', 'r1'].every((id) => ariaRinged.includes(id)) && !ariaRinged.some((id) => ['all', 'a3', 's1', 'r2'].includes(id)),
+  `${ariaRings}곳: ${ariaRinged.join(', ')}`,
+);
+check('꾸민 약관 칸: Jev에 묻지 않음 (코드가 처리)', requests.slice(since).every((b) => !b.questions?.nextControl));
+since = requests.length;
+for (const id of ['a1', 'a2', 'r1']) {
+  await page.click(`#${id}`);
+  await page.waitForTimeout(300);
+}
+const ariaNext = await settle('7-aria-consent-next', { since });
+const ariaKeys = Object.keys(requests.slice(since).find((b) => b.questions?.nextControl)?.questions.nextControl.criteria ?? {});
+check(
+  '꾸민 약관 칸: 다 체크하면 다음 버튼을 물음, 선택·전체 동의·동의하지 않음은 후보에서 빠짐',
+  ariaNext.msg.includes('다음') && ariaKeys.includes('다음') && !ariaKeys.some((k) => /선택\]|전체 동의|동의하지 않음/.test(k)),
+  ariaKeys.join(', '),
+);
+
+// 6-3. 설정 창 「마지막 화면 정보 복사하기」: 마지막으로 서버에 보낸 걸러진 정보를 시험 자료 모양으로 복사, 「기록 지우기」 뒤에는 없음 (0.1.3)
+// 확장 페이지(chrome-extension://)에는 시험 브라우저가 클립보드 권한을 줄 수 없다 → 설정 창의 클립보드 쓰기를 가로채 무엇을 복사하는지 본다
+await popup.bringToFront();
+await popup.reload();
+const catchCopy = () =>
+  popup.evaluate(() => {
+    window.__copied = null;
+    Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: async (text) => void (window.__copied = text) });
+  });
+await catchCopy();
+await popup.click('#copyLast');
+await popup.waitForTimeout(300);
+const copiedState = await popup.textContent('#copyState');
+const copiedText = (await popup.evaluate(() => window.__copied)) ?? '';
+let copied = null;
+try {
+  copied = JSON.parse(copiedText);
+} catch {
+  /* 아래 점검에서 실패로 남긴다 */
+}
+const lastSent = relayRequests.filter((b) => b.goalId).at(-1);
+// 키 순서와 상관없이 견준다 (저장소를 거치면 키 순서가 바뀔 수 있다)
+const sortedJson = (v) => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => a.localeCompare(b))) : x));
+const strip = (list) => sortedJson((list ?? []).map(({ id, ...c }) => c));
+const copyChecks = {
+  복사됨: Boolean(copied) && copiedState.includes('복사했어요'),
+  정답비움: Array.isArray(copied?.expected) && copied.expected.length === 0,
+  목표같음: copied?.goalId === lastSent?.goalId,
+  화면같음: sortedJson(copied?.page) === sortedJson(lastSent?.page),
+  후보같음: strip(copied?.candidates) === strip(lastSent?.candidates),
+  번호없음: (copied?.candidates ?? []).every((c) => !('id' in c)),
+};
+check(
+  '설정 창: 마지막 화면 정보를 시험 자료 모양으로 복사 (서버로 보낸 것과 같은 화면·후보, 정답 칸은 비움)',
+  Object.values(copyChecks).every(Boolean),
+  `${JSON.stringify(copyChecks)} · ${copiedState} · 복사 후보 ${copied?.candidates?.length} / 보낸 후보 ${lastSent?.candidates?.length}`,
+);
+await popup.click('#logClear');
+await popup.waitForTimeout(300);
+await popup.click('#copyLast');
+await popup.waitForTimeout(300);
+check('설정 창: 기록 지우기 뒤에는 복사할 화면 정보가 없음', (await popup.textContent('#copyState')).includes('아직 서버로 보낸 화면이 없어요'));
+await popup.screenshot({ path: join(OUT, '8-popup-copy.png'), fullPage: true });
+
+// 9. 서버에만 있는 목록 항목 (0.1.3: 확장이 서버 목록을 믿는다 → 목록을 늘릴 때 서버만 올리면 된다)
+serverOnly.on = true;
+await page.bringToFront();
+await page.goto(INFO, { waitUntil: 'domcontentloaded' });
+await page.waitForTimeout(1500);
+if (await shadow('[data-act="stop"]').isVisible()) await shadow('[data-act="stop"]').click(); // 안내 중이면 끝내고 찾기 화면으로
+await shadow('#gvrnmnt24-query').waitFor({ timeout: 10000 });
+const choiceCount = (n, more) =>
+  page.waitForFunction(
+    ([n, more]) => {
+      const c = document.querySelector('gvrnmnt24-guide').shadowRoot.querySelectorAll('button.choice').length;
+      return more ? c >= n : c > 0 && c <= n;
+    },
+    [n, more],
+    { timeout: 10000 },
+  );
+const searchNew = async () => {
+  await shadow('#gvrnmnt24-query').fill('새로 생긴 서류');
+  await shadow('[data-act="search"]').click();
+  await choiceCount(4, false);
+  return shadow('button.choice strong').allTextContents();
+};
+await searchNew();
+// 9-1. 「목록에서 직접 고르기」: 서버 목록을 받아 서버에만 있는 항목도 보여 준다
+const getsBefore = catalogGets;
+await shadow('[data-act="list"]').click();
+await choiceCount(CATALOG.length + 1, true).catch(() => {});
+const listNames = await shadow('button.choice strong').allTextContents();
+check(
+  '목록에서 직접 고르기: 서버 목록을 받아 서버에만 있는 항목도 보여 줌',
+  catalogGets > getsBefore && listNames.includes(SERVER_ONLY.name) && listNames.length === CATALOG.length + 1,
+  `${listNames.length}개, 서버 목록 요청 ${catalogGets - getsBefore}건`,
+);
+// 9-2. 검색 결과에서 서버에만 있는 항목을 고르면 안내가 시작되고 위쪽 제목이 그 이름이다
+const serverChoices = await searchNew();
+since = requests.length;
+const relaySince = relayRequests.length;
+await shadow('button.choice').filter({ hasText: SERVER_ONLY.name }).first().click();
+const serverStart = await settle('9-server-only', { since });
+const goalLine = await shadow('.goal-line').textContent();
+const sentGoalIds = relayRequests.slice(relaySince).map((b) => b.goalId).filter(Boolean);
+check(
+  '서버에만 있는 항목: 검색 결과에서 고르면 안내가 시작되고 제목이 그 이름',
+  serverChoices.includes(SERVER_ONLY.name) && goalLine === `찾는 것: ${SERVER_ONLY.name}` && serverStart.ringShown && sentGoalIds.includes(SERVER_ONLY.id),
+  `${goalLine} · 테두리 ${serverStart.ringShown} · 보낸 goalId ${sentGoalIds.join(',')}`,
+);
+// 9-3. 서버 목록에서 빠지면(unknown_goal) 안내를 끝내고 다시 고르게 한다
+serverOnly.removed = true;
+await shadow('[data-act="rescan"]').click();
+await page
+  .waitForFunction(() => document.querySelector('gvrnmnt24-guide').shadowRoot.querySelector('.msg').textContent.includes('길잡이 목록에 없어요'), null, { timeout: 15000 })
+  .catch(() => {});
+const goneMsg = await shadow('.msg').textContent();
+const goneState = await popup.evaluate(() => chrome.runtime.sendMessage({ type: 'guide/state' }));
+await page.screenshot({ path: join(OUT, '9-server-only-gone.png') });
+check(
+  '서버 목록에서 빠진 항목: 안내를 끝내고 찾기 화면으로 돌아가 다시 고르게 안내',
+  goneMsg.includes('길잡이 목록에 없어요') && (await shadow('#gvrnmnt24-query').isVisible()) && (await shadow('.ring').count()) === 0 && goneState?.active === false,
+  `${goneMsg} · 안내 중=${goneState?.active}`,
+);
+serverOnly.on = false;
 
 // 개인정보·형식 점검 (보낸 모든 요청)
 const asks = requests.filter((b) => b.questions?.nextControl);
