@@ -7,3 +7,5 @@ trial-out/
 .DS_Store
 store/raw/
 reference/
+jev-for-chrome/
+.vercel/
