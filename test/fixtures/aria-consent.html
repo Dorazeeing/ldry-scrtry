@@ -1,0 +1,46 @@
+<!doctype html>
+<!-- 시험용 가짜 약관 화면 (실제 사이트 화면이 아님): 진짜 체크칸(input) 없이 role="checkbox"·"radio"·"switch"와 aria-checked로 꾸민 칸.
+     「필수」 3곳(이름이 글로 있는 칸, aria-labelledby로 이름을 붙인 빈 칸, 고유식별 「동의함」)만 표시하고,
+     「선택」·「전체 동의」·「동의하지 않음」은 후보에서 빠져야 한다. -->
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>약관 동의 (꾸민 칸) | 시험 화면</title>
+  <style>
+    body { font: 16px/1.6 sans-serif; padding: 24px; max-width: 760px; }
+    li, .row { margin: 12px 0; list-style: none; }
+    .chk { display: inline-block; min-width: 20px; min-height: 20px; border: 2px solid #333; padding: 2px 8px; cursor: pointer; }
+    .chk[aria-checked="true"] { background: #1d3faf; color: #fff; }
+  </style>
+</head>
+<body>
+  <main>
+    <h2>약관 동의</h2>
+    <div><span class="chk" role="checkbox" aria-checked="false" tabindex="0" id="all">전체 동의 (선택 항목 포함)</span></div>
+    <ul>
+      <li><span class="chk" role="checkbox" aria-checked="false" tabindex="0" id="a1">[필수] 정부24 이용약관 동의</span></li>
+      <li><span class="chk" role="checkbox" aria-checked="false" tabindex="0" id="a2" aria-labelledby="l2"></span> <span id="l2">[필수] 개인정보 수집·이용 동의</span></li>
+      <li><span class="chk" role="checkbox" aria-checked="false" tabindex="0" id="a3">[선택] 맞춤 혜택 알림 받기 동의</span></li>
+      <li><span class="chk" role="switch" aria-checked="false" tabindex="0" id="s1">[선택] 새 소식 받기 동의</span></li>
+    </ul>
+    <div class="row">
+      <p>고유식별정보 처리 동의 (필수)</p>
+      <div role="radiogroup">
+        <span class="chk" role="radio" aria-checked="false" tabindex="0" id="r1">동의함</span>
+        <span class="chk" role="radio" aria-checked="false" tabindex="0" id="r2">동의하지 않음</span>
+      </div>
+    </div>
+    <button type="button">다음</button>
+  </main>
+  <script>
+    for (const el of document.querySelectorAll('[role="checkbox"], [role="switch"]')) {
+      el.addEventListener('click', () => el.setAttribute('aria-checked', String(el.getAttribute('aria-checked') !== 'true')));
+    }
+    for (const el of document.querySelectorAll('[role="radio"]')) {
+      el.addEventListener('click', () => {
+        for (const r of el.parentElement.querySelectorAll('[role="radio"]')) r.setAttribute('aria-checked', String(r === el));
+      });
+    }
+  </script>
+</body>
+</html>

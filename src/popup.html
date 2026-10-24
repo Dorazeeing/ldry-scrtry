@@ -32,7 +32,11 @@
   <section>
     <h2>최근 판단 (시험 기록)</h2>
     <ol id="log" class="log"></ol>
-    <button type="button" id="logClear">기록 지우기</button>
+    <div class="stack">
+      <button type="button" id="copyLast">마지막 화면 정보 복사하기</button>
+      <button type="button" id="logClear">기록 지우기</button>
+    </div>
+    <p id="copyState" class="hint" aria-live="polite">시험 자료를 만들 때 써요. 서버로 보낸 것과 같은, 걸러진 정보만 복사해요.</p>
   </section>
 
   <script src="popup.js" type="module"></script>

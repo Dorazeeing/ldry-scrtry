@@ -30,3 +30,4 @@ button:focus-visible, input:focus-visible { outline: 4px solid #111111; outline-
 .bad { color: #b00000; font-weight: 700; }
 .log { margin: 0 0 12px; padding-left: 24px; font-size: 18px; max-height: 220px; overflow: auto; }
 .log li { margin-bottom: 6px; }
+.stack { display: flex; flex-direction: column; gap: 16px; margin-bottom: 8px; }

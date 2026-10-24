@@ -71,4 +71,33 @@ $('logClear').addEventListener('click', async () => {
   refresh();
 });
 
+// 마지막으로 서버에 보낸 화면 정보(걸러진 것)를 시험 자료(test/fixtures/pages.json) 한 칸 모양으로 복사한다.
+// 정답(expected·expectedStage)은 비워 두고, 사람이 화면을 보고 채운다.
+function fixtureEntry({ at, goalId, page, candidates, pressed }) {
+  return {
+    name: page.title || page.path,
+    source: `설정 창에서 복사 (${new Date(at).toISOString().slice(0, 10)})`,
+    goalId,
+    expected: [],
+    expectedStage: '',
+    page,
+    pressed,
+    candidates: candidates.map(({ id, ...c }) => c),
+  };
+}
+
+$('copyLast').addEventListener('click', async () => {
+  const { payload } = await chrome.runtime.sendMessage({ type: 'popup/lastPayload' });
+  if (!payload) {
+    setText($('copyState'), '아직 서버로 보낸 화면이 없어요. 안내를 받은 뒤 다시 눌러 주세요.', 'bad');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(fixtureEntry(payload), null, 2));
+    setText($('copyState'), `복사했어요: ${payload.page.title || payload.page.path} (후보 ${payload.candidates.length}개)`, 'ok');
+  } catch {
+    setText($('copyState'), '복사가 안 됐어요. 설정 창을 한 번 누른 뒤 다시 해 주세요.', 'bad');
+  }
+});
+
 refresh();

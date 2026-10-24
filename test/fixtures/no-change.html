@@ -1,0 +1,16 @@
+<!doctype html>
+<!-- 시험용 가짜 화면: 누르면 새 창을 열려다 막힌 것처럼 아무것도 바뀌지 않는 「발급하기」 버튼.
+     두 번 눌러도 화면이 그대로면 테두리는 그대로 두고 "눌렀는데 화면이 그대로예요"와 새 창 막힘 안내가 떠야 한다. -->
+<html lang="ko"><head><meta charset="utf-8"><title>문서 출력 | 시험 화면</title>
+<style>body{font:16px/1.6 sans-serif;padding:24px}</style></head>
+<body>
+<main>
+  <h2>신청 완료</h2>
+  <p>신청이 끝났어요. 아래 버튼으로 문서를 여세요.</p>
+  <button type="button" id="open">발급하기</button>
+</main>
+<script>
+  // 새 창이 막힌 경우를 흉내 낸다: 눌러도 화면에는 아무 변화가 없다
+  document.getElementById('open').addEventListener('click', () => {});
+</script>
+</body></html>

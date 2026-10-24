@@ -13,6 +13,11 @@
     '[role="tab"]',
     '[role="link"]',
     '[role="menuitem"]',
+    // 그림으로 꾸민 체크칸·고르는 칸(진짜 input 없이 aria-checked로 표시). 약관 동의에 쓰는 사이트가 있다 (참고: chy4pro/jev-for-chrome, MIT)
+    '[role="checkbox"]',
+    '[role="radio"]',
+    '[role="switch"]',
+    'summary',
     'input[type="button"]',
     'input[type="submit"]',
     'input[type="radio"]',
@@ -54,6 +59,10 @@
   let pendingSince = 0;
   let collapsed = false;
   let spoken = '';
+  // 가리킨 곳(버튼·링크)을 누른 직후의 화면. 다음에 볼 때 그대로인지 견준다 (참고: chy4pro/jev-for-chrome, MIT)
+  let clickWatch = null; // { label, signature, url, dialog, left }
+  const NOT_STUCK = { label: '', signature: '', count: 0 };
+  let stuck = NOT_STUCK; // 같은 곳을 눌렀는데 같은 화면 그대로였던 횟수 (연달아)
 
   // ---------- 화면 (Shadow DOM, 페이지 CSS와 격리) ----------
 
@@ -183,7 +192,7 @@
     extension: '길잡이가 새로 설치됐어요. 화면을 새로고침해 주세요.',
     empty: '찾을 말을 먼저 적어 주세요.',
     personal: '이름이나 번호 같은 개인정보는 적지 말아 주세요. 서류 이름이나 하고 싶은 일만 적어 주세요.',
-    unknown_goal: '목록에 있는 것만 고를 수 있어요. 다시 찾아 주세요.',
+    unknown_goal: '고르신 서류가 지금은 길잡이 목록에 없어요. 안내를 끝냈어요. 다시 찾아서 골라 주세요.',
   };
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   // 인증 창처럼 떠 있는 iframe 안은 읽을 수 없다. 창 안에서 흔히 하는 순서를 고정 문구로 알려 준다 (서버로 보내지 않는다).
@@ -199,6 +208,9 @@
     input: (l) => `「${l}」 칸에 알맞게 적어 주세요.`,
     select: (l) => `「${l}」 목록에서 알맞은 것을 골라 주세요.`,
   };
+  // 가리킨 버튼을 두 번 눌러도 화면이 그대로일 때 (새 창이 막혔거나 화면이 늦게 바뀜). 「팝업」은 크롬 화면에 보이는 말 그대로 쓴다
+  const NO_CHANGE_TEXT = (l) =>
+    `「${l}」을(를) 눌렀는데 화면이 그대로예요. 새 창이 막혔을 수 있어요. 주소창 오른쪽 끝에 창이 막혔다는 표시(팝업 차단)가 보이면 눌러서 「항상 허용」을 고른 뒤 다시 눌러 주세요. 잠시 기다려도 그대로면 가족이나 정부24 고객센터(1588-2188)에 물어봐 주세요.`;
 
   // copy: 검색 칸에 넣을 글자. 있으면 「… 글자 복사하기」 단추를 보여 준다 (사용자가 직접 붙여 넣는다)
   function show({ stage = '', msg = '', guiding = true, copy = '' }) {
@@ -257,6 +269,16 @@
   function needConsent() {
     state = { ...state, consented: false, active: false };
     renderStart();
+  }
+
+  // 고른 서류가 길잡이 목록에 없다 (서버 목록에서 빠졌거나 처음부터 모르는 id). background가 안내를 껐으므로
+  // 처음 화면(찾기)으로 돌아가 다시 고르게 한다
+  function goalGone() {
+    state = { ...state, active: false };
+    lastSignature = '';
+    lastResult = null;
+    renderStart();
+    show({ msg: ERROR_TEXT.unknown_goal, guiding: false });
   }
 
   async function acceptConsent() {
@@ -487,8 +509,11 @@
     return document.elementsFromPoint(x, y).find((e) => e !== host && !host.contains(e)) ?? null;
   }
 
+  // 두 줄로 감긴 링크는 전체 상자의 가운데 줄이 줄 사이(옆 글)에 걸려 "가려졌다"고 잘못 본다
+  // (2026-10-24 재현: 옆 글에 바탕색·여백이 있으면 줄 높이·폭 50가지 중 11가지). 화면 안에 보이는 첫 조각으로 본다 (참고: chy4pro/jev-for-chrome, MIT)
   function isCovered(el) {
-    const r = el.getBoundingClientRect();
+    const parts = [...el.getClientRects()].filter((p) => p.width >= 2 && p.height >= 2);
+    const r = parts.find((p) => p.bottom > 0 && p.top < innerHeight) ?? parts[0] ?? el.getBoundingClientRect();
     const left = Math.max(r.left, 0);
     const right = Math.min(r.right, innerWidth);
     const top = Math.max(r.top, 0);
@@ -544,23 +569,53 @@
       .filter(Boolean);
   }
 
+  // aria-labelledby가 가리키는 요소들 (이름을 다른 곳의 글로 붙인 칸·단추)
+  function labelledBy(el) {
+    return (el.getAttribute('aria-labelledby') || '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+  }
+
+  const textOf = (els) => els.map((e) => lines(e.innerText).join(' ')).join(' ').trim();
+
+  // 이름: 보이는 글 → aria-labelledby → aria-label → title → 그림 설명 → 값 (보이는 글이 있으면 지금까지와 같다)
   function nameParts(el) {
     const own = lines(el.innerText);
     if (own.length) return { label: own[0], detail: own.slice(1).join(' ') };
     const alt = el.querySelector?.('img[alt]')?.getAttribute('alt');
-    const label = el.getAttribute('aria-label') || el.getAttribute('title') || alt || el.value || '';
+    const label = textOf(labelledBy(el)) || el.getAttribute('aria-label') || el.getAttribute('title') || alt || el.value || '';
     return { label: lines(label)[0] ?? '', detail: '' };
   }
 
   function fieldLabel(el) {
     const fromLabel = el.labels?.[0] ? lines(el.labels[0].innerText)[0] : '';
-    return fromLabel || el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.getAttribute('title') || '';
+    return fromLabel || textOf(labelledBy(el)) || el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.getAttribute('title') || '';
   }
+
+  const ARIA_OPTION = new Set(['checkbox', 'radio', 'switch']);
 
   function describe(el) {
     const tag = el.tagName.toLowerCase();
     const type = (el.getAttribute('type') || '').toLowerCase();
     if (el.disabled || el.getAttribute('aria-disabled') === 'true') return null;
+    // 진짜 input 없이 aria-checked로 표시하는 체크칸·고르는 칸. 이름은 보이는 글, 없으면 aria-labelledby·aria-label
+    if (tag !== 'input' && ARIA_OPTION.has(el.getAttribute('role'))) {
+      if (!isClickable(el)) return null;
+      const named = labelledBy(el);
+      const parts = lines(el.innerText).length ? lines(el.innerText) : lines(textOf(named));
+      const label = parts[0] || el.getAttribute('aria-label') || el.getAttribute('title') || '';
+      return {
+        el,
+        box: [el, ...named.filter(isClickable)],
+        kind: 'option',
+        label,
+        detail: parts.slice(1).join(' '),
+        selected: el.getAttribute('aria-checked') === 'true',
+        consent: consentKind(el, parts.join(' ') || label),
+      };
+    }
     if (tag === 'input' && (type === 'radio' || type === 'checkbox')) {
       const lab = el.labels?.[0];
       // 꾸민 선택지는 진짜 input을 숨기고 label만 보여 준다
@@ -615,7 +670,7 @@
     const all = `${label} ${ctx}`;
     if (!CONSENT_WORDS.test(all)) return null;
     if (AGREE_ALL.test(label)) return 'all';
-    if (input.type === 'radio' && DISAGREE.test(label)) return 'disagree';
+    if ((input.type === 'radio' || input.getAttribute('role') === 'radio') && DISAGREE.test(label)) return 'disagree';
     const req = REQUIRED_MARK.test(all);
     const opt = OPTIONAL_MARK.test(all);
     if (opt && !req) return 'optional';
@@ -754,7 +809,13 @@
         const what = searchBox
           ? `검색 칸에 「${state.goalTitle}」라고 적고 검색해 주세요. 적기 어려우면 아래 단추로 복사해서 붙여 넣으세요.`
           : ACTION_TEXT[res.targetKind](res.label);
-        show({ stage: res.stageText, msg: `${what} 빨간 테두리로 표시했어요.`, copy: searchBox ? state.goalTitle : '' });
+        // 같은 곳을 두 번 눌러도 같은 화면이면 테두리는 그대로 두고 막힌 까닭을 알려 준다
+        const stuckHere = stuck.count >= 2 && stuck.label === res.label;
+        show({
+          stage: res.stageText,
+          msg: stuckHere ? NO_CHANGE_TEXT(res.label) : `${what} 빨간 테두리로 표시했어요.`,
+          copy: searchBox ? state.goalTitle : '',
+        });
         pointTo([{ els, tag: '여기를 누르세요' }]);
         return;
       }
@@ -762,6 +823,7 @@
     clearTarget();
     if (res.kind === 'error') {
       if (res.code === 'no_consent') return needConsent();
+      if (res.code === 'unknown_goal') return goalGone();
       show({ msg: res.message ?? ERROR_TEXT[res.code] ?? '잠깐 문제가 생겼어요. 「다시 찾기」를 눌러 주세요.' });
       return;
     }
@@ -781,6 +843,8 @@
     if (hold) {
       clearTarget();
       lastSignature = '';
+      clickWatch = null;
+      stuck = NOT_STUCK;
       show({ msg: HOLD_TEXT[hold] });
       return;
     }
@@ -789,6 +853,8 @@
       clearTarget();
       lastSignature = '';
       lastResult = null;
+      clickWatch = null;
+      stuck = NOT_STUCK;
       show({ stage: '창이 열려 있어요.', msg: FRAME_HELP });
       return;
     }
@@ -796,8 +862,19 @@
     // 후보를 전부 모으기 전에 끝낸다 (화면이 바뀔 때마다 수백 개를 훑지 않게)
     if (reason === 'mutation' && Boolean(activeDialog() || openLayer()) === lastDialog && (targetsShown() || lastFailed)) return;
     const { candidates, map, page, dialog, consent } = collect();
+    const signature = JSON.stringify([page, candidates.map(({ id, ...c }) => c)]);
     const dialogChanged = dialog !== lastDialog;
     lastDialog = dialog;
+    // 가리킨 버튼·링크를 누른 뒤 처음 보는 화면: 주소·창·후보가 모두 그대로이고 다른 창으로 넘어가지도 않았으면 "그대로"로 센다.
+    // 같은 곳·같은 화면에서 연달아 세고, 화면이 조금이라도 바뀌면 처음부터 센다.
+    if (clickWatch) {
+      const same = !clickWatch.left && clickWatch.url === location.href && clickWatch.dialog === dialog && clickWatch.signature === signature;
+      const again = same && stuck.label === clickWatch.label && stuck.signature === signature;
+      stuck = same ? { label: clickWatch.label, signature, count: again ? stuck.count + 1 : 1 } : NOT_STUCK;
+      clickWatch = null;
+    } else if (stuck.count && stuck.signature !== signature) {
+      stuck = NOT_STUCK;
+    }
     if (reason === 'mutation' && !dialogChanged) {
       // 서버가 꺼졌거나 상한에 닿았을 때 5초마다 계속 묻지 않는다 → 「다시 찾기」·누르기·쪽 이동 때 다시 묻는다
       if (targetsShown() || lastFailed) return;
@@ -822,7 +899,6 @@
       return;
     }
 
-    const signature = JSON.stringify([page, candidates.map(({ id, ...c }) => c)]);
     elements = map;
     if (signature === lastSignature && lastResult && reason !== 'manual') {
       apply(lastResult);
@@ -927,6 +1003,10 @@
       if (!state?.active || e.composedPath().includes(host)) return;
       // 가리킨 곳을 눌렀으면 그 판단은 끝난 것: 같은 화면이어도 이전 판단을 다시 쓰지 않는다
       if (targets.some((t) => t.els.some((x) => x === e.target || x.contains(e.target)))) {
+        // 버튼·링크를 눌렀으면 다음에 볼 때 화면이 바뀌었는지 견준다 (칸·고르는 칸은 눌러도 화면이 그대로인 게 정상이라 보지 않는다)
+        if (lastResult?.kind === 'point' && (lastResult.targetKind === 'button' || lastResult.targetKind === 'link')) {
+          clickWatch = { label: lastResult.label, signature: lastSignature, url: location.href, dialog: lastDialog, left: false };
+        }
         lastSignature = '';
         lastResult = null;
         clearTarget();
@@ -947,11 +1027,21 @@
 
   document.addEventListener('change', () => state?.active && schedule('change'), true);
 
-  new MutationObserver(() => {
+  // 누른 뒤 새 창·새 탭·인쇄 창으로 넘어갔으면 이 화면이 그대로여도 "막힌" 것이 아니다
+  const leftPage = () => {
+    if (clickWatch) clickWatch.left = true;
+  };
+  addEventListener('blur', leftPage);
+  addEventListener('beforeprint', leftPage);
+  document.addEventListener('visibilitychange', () => document.hidden && leftPage());
+
+  new MutationObserver((records) => {
     if (!state?.active) return;
     if (location.href !== lastUrl) {
       lastUrl = location.href;
       schedule('navigation');
+    } else if (records.some((r) => r.attributeName === 'aria-checked')) {
+      schedule('change'); // 그림으로 꾸민 체크칸이 바뀌면 체크가 바뀐 것과 같다
     } else {
       schedule('mutation');
     }
@@ -959,7 +1049,7 @@
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ['class', 'style', 'hidden', 'aria-hidden', 'open', 'aria-expanded', 'disabled'],
+    attributeFilter: ['class', 'style', 'hidden', 'aria-hidden', 'open', 'aria-expanded', 'disabled', 'aria-checked'],
   });
 
   let frame = 0;

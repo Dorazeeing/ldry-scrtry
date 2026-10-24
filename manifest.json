@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ldry-scrtry",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2pGVS1EG7jGqDl0G7yqxZrfEKdRxw9ZjRDYogXbo7EY/o8yaMhsTdSTulzxt7DF/bLL9PKcUbs2ZXlX4dedY2+9Kg4ponr3nPM2OyqVifsibJAdNzWfqEd46rpdyz9X1s5uyXFI4k5ITuaNo38WB7FBjuvfN1+TXVN858xH3wikzDMbA4BsiksUUOBCJ3cZ1/dwU5d6DuCRdQaphAIw98D9CChFOOJx+QtRiEuSLqkEQ9Xxlpnu5gJu7utFBbET35ny6joSOtUYtxOug5WDAt+4DIehWATnsCYZLFB9GGEbt2HiaNu8nhCtaBlowp2lk3hyDcRmK3Z+jU+xzj4UmAwIDAQAB",
   "description": "정부24와 민원 서류를 발급하는 기관 사이트에서 다음에 누를 곳을 큰 테두리로 알려 주는 비공식 길잡이입니다. 정부24·행정안전부와 관계없습니다.",
   "minimum_chrome_version": "116",
