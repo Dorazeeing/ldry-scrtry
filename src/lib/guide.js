@@ -5,6 +5,7 @@
 import { CATALOG, docNames, findService, formPicks, goalFor, buildSearchRequest, cleanQuery, localSearch, namedButMissing, pickServices, publicItem, MAX_RESULTS } from './catalog.js';
 import { STAGE_TEXT } from './goals.js';
 import { buildRequest, decide } from './jev.js';
+import { SEARCH_EXHAUSTED_RESULT, SEARCH_EXHAUSTED_TEXT, WRONG_SITE_RESULT, searchGuard, wrongSite } from './finding.js';
 import { HANDOFF_RESULT, choiceNote, detectHandoff, splitChoices, withoutLoginControls, withoutSelfLinks } from './handoff.js';
 import { MAX_LABEL, NONE_OPTION, cleanGuidePayload, cleanText } from './sanitize.js';
 import { ALLOWED_HOSTS, siteFor } from './sites.js';
@@ -55,15 +56,20 @@ export function prepareGuide({ goalId, page, candidates, pressed }) {
   const clean = cleanGuidePayload({ page, candidates, pressed });
   const host = hostOf(clean.page.path);
   if (!ALLOWED_HOSTS.has(host)) return { error: 'forbidden_site' };
+  // 서류를 주지 않는 사이트에서 시작했으면 Jev에 묻지 않고 정부24로 가라고 한다 (다른 사이트로 넘어온 사람은 돌려보내지 않는다, finding.js)
+  if (wrongSite({ host, goalId, pressed: clean.pressed })) return { result: { ...WRONG_SITE_RESULT } };
   // 로그인 방법을 고르는 화면은 사용자가 직접 한다: 서버에 묻지 않고 넘긴다
   if (detectHandoff(clean.candidates)) return { result: { ...HANDOFF_RESULT } };
   // 로그인·회원가입·인증 버튼은 후보에서 뺀다 (AI가 "로그인부터"를 고르지 못하게)
   // 신청서의 고르는 칸(본인·가족 등)도 사용자가 직접 고르므로 뺀다. 서류 종류 칸만 남긴다 (D-11)
   const { list: kept, personal } = splitChoices(joinShortDetail(withoutLoginControls(clean.candidates)), formPicks(goalId));
   // 이미 그 서류 화면이면 같은 이름의 메뉴 링크는 뺀다 (다시 누르면 처음으로 돌아가고 본인 확인이 풀린다)
-  const list = withoutSelfLinks(kept, { names: docNames(goalId), title: clean.page.title, pressed: clean.pressed });
+  const reachable = withoutSelfLinks(kept, { names: docNames(goalId), title: clean.page.title, pressed: clean.pressed });
+  // 검색을 두 번 했으면 검색 칸·단추는 뺀다 (검색만 되풀이하지 않게). 그러면 jev.js의 「빈 검색 칸으로 옮기기」도 일어나지 않는다
+  const guard = searchGuard(reachable, clean.pressed);
+  const list = guard.list;
   const note = choiceNote(personal, clean.pressed);
-  if (list.length === 0) return { result: { kind: 'unsure', reason: 'no_candidates', stage: null, stageText: '' } };
+  if (list.length === 0) return { result: guard.on ? { ...SEARCH_EXHAUSTED_RESULT } : { kind: 'unsure', reason: 'no_candidates', stage: null, stageText: '' } };
   const body = buildRequest({
     goal: goalFor(goalId),
     page: clean.page,
@@ -71,7 +77,13 @@ export function prepareGuide({ goalId, page, candidates, pressed }) {
     pressed: clean.pressed,
     site: siteFor(host)?.name ?? '정부24',
   });
-  return { body, candidates: list, note };
+  return { body, candidates: list, note, searchGuard: guard.on };
+}
+
+// 검색을 두 번 한 뒤에도 Jev가 갈 곳을 못 고르면(해당 없음·낮은 확률) "검색으로 두 번 찾아봤는데 못 찾았어요"로 바꾼다
+export function afterSearchGuard(decision, searchGuardOn) {
+  if (!searchGuardOn || decision.kind !== 'unsure' || !['none', 'low_probability'].includes(decision.reason)) return decision;
+  return { ...decision, reason: 'search_exhausted' };
 }
 
 const FORM_STAGE = '신청서 작성';
@@ -87,6 +99,7 @@ export function finishGuide(decision, candidates, note = '') {
     d = { ...d, id: pick.id };
   }
   const { raw, ...rest } = d;
+  if (d.reason === 'search_exhausted') return { ...rest, stageText: SEARCH_EXHAUSTED_TEXT };
   const formNote = note && d.stage === FORM_STAGE ? note : '';
   return { ...rest, stageText: formNote || (STAGE_TEXT[d.stage] ?? '') };
 }
@@ -97,7 +110,7 @@ export async function guideNext(input, call) {
   if (prep.error) return { error: prep.error };
   if (prep.result) return { result: prep.result };
   const response = await call(prep.body);
-  const decision = decide(response, prep.candidates);
+  const decision = afterSearchGuard(decide(response, prep.candidates), prep.searchGuard);
   return { result: finishGuide(decision, prep.candidates, prep.note), decision, usage: response?.usage };
 }
 

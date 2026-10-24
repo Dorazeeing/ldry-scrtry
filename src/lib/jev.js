@@ -22,6 +22,11 @@ export const TIMEOUT_MS = 5000;
 export const MAX_RETRIES = 1;
 // Jev 확률은 소수 둘째 자리로 올 수 있다. 고른 것과 가장 높은 것의 차이가 이만큼까지는 어긋난 답으로 보지 않는다.
 export const ROUNDING_TOLERANCE = 0.01;
+// 찾는 단계 지킴 (finding.js·background.js, 2026-10-25). 둘 다 처음 값이다 — 실제 사용을 보고 고친다.
+// 마지막으로 다른 사이트로 넘어간 뒤 검색 단추를 이만큼 누르면 검색 칸·단추를 후보에서 뺀다 (서버 쪽, railway up으로 바뀜)
+export const SEARCH_LIMIT = 2;
+// 서버의 새 답이 「민원 찾기」로 연달아 이만큼 오면 확장이 멈추고 다른 길을 보여 준다 (확장 쪽 값이라 바꾸면 스토어 심사가 필요하다)
+export const FIND_LIMIT = 8;
 
 const KIND_TEXT = {
   button: 'button',
@@ -161,8 +166,8 @@ function inconsistent(probabilities, offered, chosen) {
 // 검색 단추를 골랐는데 같은 화면의 검색 칸이 비어 있으면 칸을 가리킨다. 빈 칸으로 검색하면 어르신이 막힌다.
 // 칸을 가리켜야 확장이 "검색 칸에 「서류 이름」이라고 적고…"와 글자 복사 단추를 보여 준다 (content.js apply가 같은 검색 칸 모양을 본다).
 // 2026-10-25 홈택스 메인(사업자등록증 재발급): 빈 「검색어를 입력하세요!」 칸 옆 돋보기 「검색」 단추를 가리켜 복사 단추가 안 떴다.
-const SEARCH_SUBMIT = /^(통합)?(검색|찾기)(하기|버튼|실행)?$|^search$/i;
-const SEARCH_FIELD = /검색|무엇을|알고 싶|찾/;
+export const SEARCH_SUBMIT = /^(통합)?(검색|찾기)(하기|버튼|실행)?$|^search$/i;
+export const SEARCH_FIELD = /검색|무엇을|알고 싶|찾/;
 
 function emptySearchField(pick, candidates) {
   if ((pick.kind !== 'button' && pick.kind !== 'link') || !SEARCH_SUBMIT.test(pick.label.replace(/\s+/g, ''))) return null;

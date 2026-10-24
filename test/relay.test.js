@@ -97,9 +97,11 @@ test('중계: 경로 속 세션 값은 버리고, 정부24가 아닌 사이트�
   assert.equal(r.status, 403);
   assert.equal((await r.json()).error.code, 'forbidden_site');
   // 기관 사이트(D-9)는 받는다. 정부24 밖이라 화면 속 글(제목 글·창 안내 글)은 서버가 버린다
+  // (그 사이트가 주는 서류여야 한다 — 아니면 wrong_site로 Jev에 묻지 않는다, 2026-10-25)
   seen.length = 0;
   const ok2 = await post(base, '/v1/guide/next', {
     ...guideBody,
+    goalId: 'family_relation',
     page: { path: 'efamily.scourt.go.kr/pt/PtFrrpApplrInfoInqW.do', title: '신청인 정보 조회', headings: ['증명서 발급'], popupText: '확인하세요' },
   });
   assert.equal(ok2.status, 200);
@@ -275,4 +277,31 @@ test('중계: 확장 버전은 X-Ldry-Version 헤더로 읽고, 없으면 0.1.2 
   const withHeader = await post(base, '/v1/guide/next', guideBody, { 'X-Ldry-Version': '0.1.3' });
   const without = await post(base, '/v1/guide/next', guideBody);
   assert.deepEqual(await withHeader.json(), await without.json());
+});
+
+test('중계: 찾는 단계 지킴 — 서류를 주지 않는 사이트에서 시작하면 wrong_site, 검색만 되풀이하면 search_exhausted (Jev를 안 부름)', async () => {
+  seen.length = 0;
+  const wrong = await post(base, '/v1/guide/next', { ...guideBody, page: { path: 'www.car365.go.kr/home', title: '자동차365' }, pressed: [] });
+  assert.equal(wrong.status, 200);
+  const w = await wrong.json();
+  assert.equal(w.kind, 'unsure');
+  assert.equal(w.reason, 'wrong_site');
+  assert.match(w.stageText, /정부24로 가서 다시 시작/);
+  // 「사이트가기」로 넘어왔으면 그대로 묻는다
+  const hopped = await post(base, '/v1/guide/next', { ...guideBody, page: { path: 'www.car365.go.kr/home', title: '자동차365' }, pressed: ['사이트가기'] });
+  assert.equal((await hopped.json()).kind, 'point');
+  assert.equal(seen.length, 1, 'wrong_site에서는 Jev를 부르지 않았다');
+  seen.length = 0;
+  const exhausted = await post(base, '/v1/guide/next', {
+    ...guideBody,
+    candidates: [
+      { id: 0, label: '검색어를 입력하세요', kind: 'input', area: 'main' },
+      { id: 1, label: '검색', kind: 'button', area: 'main' },
+    ],
+    pressed: ['검색', '검색어를 입력하세요', '검색'],
+  });
+  const e = await exhausted.json();
+  assert.equal(e.reason, 'search_exhausted');
+  assert.equal(e.stageText, '검색으로 두 번 찾아봤는데 못 찾았어요.');
+  assert.equal(seen.length, 0);
 });

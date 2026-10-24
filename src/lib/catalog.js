@@ -7,6 +7,8 @@
 // formNote: 신청서에서 꼭 골라야 하는 것 (Jev 목표 문장에 붙음)
 // names: 같은 서류의 다른 공식 표기 (목록에 있는지 확인할 때, 이미 그 서류 화면인지 볼 때 씀)
 // picks: 신청서에서 서류 종류를 고르는 칸의 짧은 이름. 서류 이름·names와 같은 이름의 고르는 칸만 길잡이가 가리킨다 (handoff.js, D-11)
+// url: 그 서류의 정부24 공식 안내 화면 주소 (확장의 「바로 가기」 단추, 0.1.3). **사람이 실제 크롬에서 열어 확인한 주소만** 넣는다.
+//      2026-10-25 지금은 모두 비어 있다. https이고 길잡이가 뜨는 사이트(sites.js)여야 하며, 아니면 버린다 (safeGuideUrl)
 
 import { NONE_OPTION, cleanText, cutText, looksPersonal } from './sanitize.js';
 import { ALLOWED_HOSTS, siteFor } from './sites.js';
@@ -97,9 +99,22 @@ function offsite(c) {
   return Boolean(c.site && !ALLOWED_HOSTS.has(c.site));
 }
 
+// 「바로 가기」 주소로 써도 되는지: https, 아이디·비밀번호 없음, 호스트가 길잡이가 뜨는 사이트. 되면 정리한 주소, 아니면 ''
+export function safeGuideUrl(url) {
+  if (typeof url !== 'string' || !url) return '';
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:' && !u.username && !u.password && ALLOWED_HOSTS.has(u.host) ? u.href : '';
+  } catch {
+    return '';
+  }
+}
+
 export function publicItem(c) {
   const item = { id: c.id, name: c.name, plain: c.plain };
   if (offsite(c)) item.offsiteName = siteFor(c.site)?.name ?? c.site;
+  const url = safeGuideUrl(c.url); // 사람이 확인해 넣은 주소가 있을 때만 (지금은 없음)
+  if (url) item.url = url;
   return item;
 }
 
@@ -122,6 +137,8 @@ export function cleanPublicItems(list) {
     const item = { id, name, plain: cutText(it.plain, MAX_ITEM_PLAIN) };
     const offsiteName = cleanText(it.offsiteName, MAX_ITEM_NAME);
     if (offsiteName) item.offsiteName = offsiteName;
+    const url = safeGuideUrl(it.url); // 서버가 준 주소도 다시 본다 (https·길잡이가 뜨는 사이트만)
+    if (url) item.url = url;
     out.push(item);
   }
   return out;
